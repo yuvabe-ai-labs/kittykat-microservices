@@ -9,7 +9,6 @@ from helpers.watermarking_utils import (
 )
 from constants.path_constants import FONTS_DIR
 
-
 router = APIRouter()
 
 
@@ -27,19 +26,23 @@ async def apply_text_watermark(
 ):
     watermarked_images = []
 
+    # Validate font path
     font_path = os.path.join(FONTS_DIR, font_name)
     if not os.path.exists(font_path):
         raise HTTPException(status_code=404, detail="Font not found.")
 
+    # Validate font color
     if len(font_color) != 3 or any(c < 0 or c > 255 for c in font_color):
         raise HTTPException(
             status_code=400,
             detail="Invalid font color format. Provide three values in range 0-255.",
         )
 
+    # Calculate text color with opacity
     text_opacity = int((opacity / 100) * 255)
     text_color = tuple(font_color) + (text_opacity,)
 
+    # Process each uploaded image
     for original_image in original_images:
         with Image.open(original_image.file).convert("RGBA") as img:
             font_size = int(img.width * font_scale)
