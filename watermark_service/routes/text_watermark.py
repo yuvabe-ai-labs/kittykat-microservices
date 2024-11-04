@@ -138,22 +138,25 @@ async def apply_text_watermark_from_urls(
     return JSONResponse(content={"images": watermarked_images})
 
 
-@router.post("/file/watermark/image/store/files")
+@router.post("/file/watermark/text/store")
 async def apply_text_watermark_from_files(
     original_images: List[UploadFile] = File(...),
     file_names: List[str] = Form(...),  # Accepts a list of desired file names
+    folder_paths: List[str] = Form(...),  # Accepts a list of folder paths
     watermark_text: str = Form("KITTYKAT"),
     font_name: str = Form("8bitlim.ttf"),
     font_scale: Optional[float] = Form(0.05),
     opacity: Optional[float] = Form(50.0),
     font_color: str = Form("255,255,255"),
     position: Optional[str] = Form("bottom_right"),
-    folder_path: str = Form(...),
 ):
-    if len(original_images) != len(file_names):
+    # Validate the number of images, file names, and folder paths
+    if len(original_images) != len(file_names) or len(original_images) != len(
+        folder_paths
+    ):
         raise HTTPException(
             status_code=400,
-            detail="The number of images must match the number of file names.",
+            detail="The number of images, file names, and folder paths must match.",
         )
 
     watermarked_images = []
@@ -179,7 +182,9 @@ async def apply_text_watermark_from_files(
     text_color = font_color_rgb + (text_opacity,)
 
     # Process each uploaded image
-    for original_image, file_name in zip(original_images, file_names):
+    for original_image, file_name, folder_path in zip(
+        original_images, file_names, folder_paths
+    ):
         with Image.open(original_image.file).convert("RGBA") as img:
             font_size = int(img.width * font_scale)
             font = ImageFont.truetype(font_path, font_size)
@@ -204,22 +209,23 @@ async def apply_text_watermark_from_files(
     return JSONResponse(content={"images": watermarked_images})
 
 
-@router.post("/file/watermark/url/store/files")
+@router.post("/url/watermark/text/store")
 async def apply_text_watermark_from_urls(
     image_urls: List[str] = Form(...),
     file_names: List[str] = Form(...),  # Accepts a list of desired file names
+    folder_paths: List[str] = Form(...),  # Accepts a list of folder paths
     watermark_text: str = Form("KITTYKAT"),
     font_name: str = Form("8bitlim.ttf"),
     font_scale: Optional[float] = Form(0.05),
     opacity: Optional[float] = Form(50.0),
     font_color: str = Form("255,255,255"),
     position: Optional[str] = Form("bottom_right"),
-    folder_path: str = Form(...),
 ):
-    if len(image_urls) != len(file_names):
+    # Validate the number of image URLs, file names, and folder paths
+    if len(image_urls) != len(file_names) or len(image_urls) != len(folder_paths):
         raise HTTPException(
             status_code=400,
-            detail="The number of image URLs must match the number of file names.",
+            detail="The number of image URLs, file names, and folder paths must match.",
         )
 
     watermarked_images = []
@@ -245,7 +251,7 @@ async def apply_text_watermark_from_urls(
     text_color = font_color_rgb + (text_opacity,)
 
     # Process each image URL
-    for image_url, file_name in zip(image_urls, file_names):
+    for image_url, file_name, folder_path in zip(image_urls, file_names, folder_paths):
         response = requests.get(image_url)
         if response.status_code != 200:
             raise HTTPException(

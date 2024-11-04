@@ -12,7 +12,6 @@ from helpers.watermarking_utils import (
     apply_opacity,
     upload_to_gcs,
 )
-from config.google_bucket import bucket
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -113,27 +112,34 @@ async def apply_watermark_from_urls(
 
 
 @router.post("/file/watermark/image/store")
-async def apply_watermark(
+async def apply_watermark_and_store(
     original_images: List[UploadFile] = File(...),
     file_names: List[str] = Form(...),
     watermark_image: Optional[UploadFile] = File(None),
     watermark_scale: Optional[float] = Form(0.15),
     position: Optional[str] = Form("bottom_right"),
     opacity: Optional[float] = Form(100.0),
-    folder_path: str = Form(...),
+    folder_paths: List[str] = Form(...),  # Accepting a list of folder paths
 ):
     try:
         # Load watermark image
         watermark = load_watermark_image(watermark_image)
         watermarked_images = []
 
-        if len(original_images) != len(file_names):
+        # Validate that the lengths of input lists match
+        if len(original_images) != len(file_names) or len(original_images) != len(
+            folder_paths
+        ):
             return JSONResponse(
                 status_code=400,
-                content={"error": "Number of images and file names must match."},
+                content={
+                    "error": "Number of images, file names, and folder paths must match."
+                },
             )
 
-        for original_image, file_name in zip(original_images, file_names):
+        for original_image, file_name, folder_path in zip(
+            original_images, file_names, folder_paths
+        ):
             with Image.open(original_image.file).convert("RGBA") as original:
                 # Resize watermark based on original image dimensions
                 target_width = int(original.width * watermark_scale)
@@ -173,18 +179,20 @@ async def apply_watermark_from_urls(
     watermark_scale: Optional[float] = Form(0.15),
     position: Optional[str] = Form("bottom_right"),
     opacity: Optional[float] = Form(100.0),
-    folder_path: str = Form(...),
-    # Accepts a list of desired file names
+    folder_paths: List[str] = Form(...),  # Change to accept a list of folder paths
 ):
     """Apply watermark to images from a list of URLs, upload to GCS, and return the URLs."""
     try:
         watermark = load_watermark_image(watermark_image)
         watermarked_images = []
 
-        if len(image_urls) != len(file_names):
+        # Validate the lengths of the inputs
+        if len(image_urls) != len(file_names) or len(file_names) != len(folder_paths):
             return JSONResponse(
                 status_code=400,
-                content={"error": "Number of image URLs and file names must match."},
+                content={
+                    "error": "Number of image URLs, file names, and folder paths must match."
+                },
             )
 
         for idx, image_url in enumerate(image_urls):
@@ -214,6 +222,7 @@ async def apply_watermark_from_urls(
                 watermarked_image.paste(resized_watermark, pos, resized_watermark)
 
                 file_name = file_names[idx]  # Use the provided file name
+                folder_path = folder_paths[idx]  # Use the corresponding folder path
                 # Upload to GCS and get the URL
                 image_url = upload_to_gcs(watermarked_image, folder_path, file_name)
                 watermarked_images.append(image_url)

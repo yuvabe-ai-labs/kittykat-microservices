@@ -12,19 +12,15 @@ from config.google_bucket import bucket
 
 def load_watermark_image(watermark_image: Optional[UploadFile]) -> Image:
     """Load the watermark image, defaulting to a pre-configured watermark if not provided."""
-    # Check if the watermark is missing and use a default path if it exists
     if watermark_image is None:
         if not os.path.exists(DEFAULT_WATERMARK_PATH):
             raise HTTPException(
                 status_code=404, detail="Default watermark image not found."
             )
         return Image.open(DEFAULT_WATERMARK_PATH).convert("RGBA")
-
-    # Ensure watermark_image is of type UploadFile and has a .file attribute
     if not isinstance(watermark_image, UploadFile):
         raise HTTPException(status_code=400, detail="Invalid watermark file format.")
 
-    # Load and return the watermark image as an RGBA image
     try:
         return Image.open(watermark_image.file).convert("RGBA")
     except Exception as e:
@@ -82,7 +78,7 @@ def encode_image_to_base64(image: Image) -> str:
 def upload_to_gcs(
     image: Image, folder_path: str, file_name: str, quality: int = 80
 ) -> str:
-    """Upload the image to Google Cloud Storage and return the public URL."""
+    """Upload the reduced version of image to Google Cloud Storage and return the public URL."""
     try:
         # Save the image as WEBP format with compression
         img_bytes = BytesIO()
