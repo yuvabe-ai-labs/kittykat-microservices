@@ -79,18 +79,22 @@ def encode_image_to_base64(image: Image) -> str:
     return base64.b64encode(img_bytes.getvalue()).decode("utf-8")
 
 
-def upload_to_gcs(image: Image, folder_path: str, file_name: str) -> str:
+def upload_to_gcs(
+    image: Image, folder_path: str, file_name: str, quality: int = 80
+) -> str:
     """Upload the image to Google Cloud Storage and return the public URL."""
     try:
+        # Save the image as WEBP format with compression
         img_bytes = BytesIO()
-        image.save(img_bytes, format="WEBP")
+        image.save(img_bytes, format="WEBP", quality=quality)
         img_bytes.seek(0)
 
-        # Create a unique filename with folder path
-        blob = bucket.blob(f"{folder_path}/{file_name}.webp")
-        blob.upload_from_file(img_bytes, content_type="image/webp")
+        # Upload the compressed image to GCS
+        compressed_blob = bucket.blob(f"{folder_path}/{file_name}")
+        compressed_blob.upload_from_file(img_bytes, content_type="image/webp")
 
-        # No need to call make_public, ensure public access is set at the bucket level
-        return blob.public_url
+        # Return the public URL of the uploaded compressed image
+        return compressed_blob.public_url
+
     except GoogleCloudError as e:
         raise HTTPException(status_code=500, detail=f"Error uploading to GCS: {str(e)}")
