@@ -4,8 +4,8 @@ on:
   push:
     branches:
       - main  # Trigger on push to the main branch
-      - staging
       - development
+      - staging
     paths:
       - '**/*'  # Listen to changes in any file in the repository
 
@@ -24,8 +24,26 @@ jobs:
           # List all directories at the root level (which represent microservices)
           ALL_MICROSERVICES=$(ls -d */ | cut -f1 -d'/')
 
+          # Check if 'before' commit hash is available, handle the first commit or invalid case
+          if [ -z "${{ github.event.before }}" ]; then
+            echo "No previous commit to compare against, exiting."
+            echo "changed_dirs=" >> $GITHUB_ENV
+            exit 0
+          fi
+
           # Detect which directories have changes using git diff
           CHANGED_DIRS=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E "^($ALL_MICROSERVICES)" | cut -d/ -f1 | sort -u)
 
-          echo "Changed directories: $CHANGED_DIRS"
-          echo "::set-output name=changed_dirs::$CHANGED_DIRS"
+          # If no changes are detected, return an empty string
+          if [ -z "$CHANGED_DIRS" ]; then
+            echo "No microservices changed."
+            echo "changed_dirs=" >> $GITHUB_ENV
+          else
+            echo "Changed directories: $CHANGED_DIRS"
+            echo "changed_dirs=$CHANGED_DIRS" >> $GITHUB_ENV
+          fi
+          
+      # Print the changed directories to check the result
+      - name: Display changed directories
+        run: |
+          echo "The following microservices have been changed: ${{ env.changed_dirs }}"
