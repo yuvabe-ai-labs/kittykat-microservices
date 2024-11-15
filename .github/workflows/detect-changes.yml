@@ -3,25 +3,29 @@ name: Detect Changed Microservices
 on:
   push:
     branches:
-      - main
-      - development
-      - staging
+      - '**'   # Trigger on all branches
     paths:
-      - '**/*'
+      - '**/*' # Monitor changes in all files
 
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
+
+      - name: Print commit hashes for debugging
+        run: |
+          echo "Before Commit: ${{ github.event.before }}"
+          echo "Current Commit: ${{ github.sha }}"
 
       - name: Identify changed microservices
         id: changed
         run: |
           # List all directories at the root level (which represent microservices)
           ALL_MICROSERVICES=$(ls -d */ | cut -f1 -d'/')
-
+          
           # Check if 'before' commit hash is available, handle the first commit or invalid case
           if [ -z "${{ github.event.before }}" ]; then
             echo "No previous commit to compare against, exiting."
@@ -44,3 +48,4 @@ jobs:
       - name: Display changed directories
         run: |
           echo "The following microservices have been changed: ${{ env.changed_dirs }}"
+
