@@ -1,0 +1,115 @@
+name: Deploy service
+on:
+    push:
+        branches:
+            - development
+            - staging
+            - main
+        paths:
+            - "text_embedding_service/**"
+            - "watermark_service/**"
+            - "image_embedding_service/**"
+        #     - "**/deploy-service.yaml"
+        #     - "**/update-service-matrix.sh"
+        #     - "**/update-changed-files.sh"
+        #     - "**/touch_to_restart_all_services.txt"
+
+env:
+    PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
+    STAGE_TYPE: ${{ contains(github.ref, 'main' ) && 'prod' || contains(github.ref, 'stage' )  && 'stg' ||  'dev'}}
+    
+jobs:
+    update-matrix:
+        runs-on: ubuntu-latest
+        outputs:
+            matrix: ${{ steps.set-matrix.outputs.matrix }}
+        steps:
+            - name: checkout
+              uses: actions/checkout@v3
+              with:
+                  fetch-depth: 0
+
+            - name: change file permission to run scripts
+              id: permission
+              run: |
+                  chmod +x .github/scripts/check-files.sh
+                  chmod +x .github/scripts/extract-directory.sh
+
+            - name: get changed files
+              id: getfile
+              run: .github/scripts/check-files.sh
+
+            - name: debug files
+              run: echo ${{ steps.getfile.outputs.files }}
+
+            - name: update matrix
+              id: set-matrix
+              run: .github/scripts/extract-directory.sh ${{ steps.getfile.outputs.files }}
+
+    debug-matrix:
+        needs: update-matrix
+        runs-on: ubuntu-latest
+        steps:
+            - run: |-
+                  echo "${{needs.update-matrix.outputs.matrix}}"
+                  echo "${{fromJson(needs.update-matrix.outputs.matrix)}}"
+    
+    build_and_deploy:
+        needs: update-matrix
+        runs-on: ubuntu-latest
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix: ${{fromJson(needs.update-matrix.outputs.matrix)}}
+        outputs:
+            folder: ${{ env.MATRIX_PATH }}
+            service_name: ${{ env.SERVICE_NAME }}
+        if: ${{ contains(needs.update-matrix.outputs.matrix, 'watermark_service/') || contains(needs.update-matrix.outputs.matrix, 'text_embedding_service/') || contains(needs.update-matrix.outputs.matrix, 'image_embedding_service/') }}
+
+        steps:
+          - name: checkout
+            uses: actions/checkout@v3
+
+          - name: Authenticate with Google Cloud
+            uses: "google-github-actions/auth@v2"
+            with:
+                credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+
+          - name: Set up Cloud SDK
+            uses: google-github-actions/setup-gcloud@v2
+            with:
+                project_id: ${{ env.PROJECT_ID }}
+                credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
+                
+
+          - name: Configure Docker
+            run: gcloud auth configure-docker --quiet
+          
+          - name: Update Env
+            run: |-
+                MATRIX_PATH="${{matrix.path}}"
+                FOLDER=$(basename $MATRIX_PATH)
+                SERVICE_NAME=platform-$FOLDER-$STAGE_TYPE
+                SERVICE_NAME=${SERVICE_NAME//_/-}
+                SERVICE_NAME=`echo "$SERVICE_NAME" | tr '[:upper:]' '[:lower:]'`
+                IMAGE_URL=gcr.io/$PROJECT_ID/$SERVICE_NAME:$GITHUB_SHA
+                echo "SERVICE_NAME=$SERVICE_NAME" >> $GITHUB_ENV
+                echo "IMAGE_URL=$IMAGE_URL" >> $GITHUB_ENV
+
+          - name: Build the image
+            run: |-
+                docker build -t "${{env.IMAGE_URL}}" ${{matrix.path}}
+          
+          - name: Publish image
+            run: docker push ${{env.IMAGE_URL}}
+          
+          - name: Deploy image
+            run: |-
+                gcloud run deploy \
+                --image ${{env.IMAGE_URL}} \
+                --platform managed \
+                --region us-central1 \
+                --allow-unauthenticated \
+                ${{env.SERVICE_NAME}}
+  
+    
