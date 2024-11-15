@@ -103,4 +103,5 @@ jobs:
           --platform managed \
           --region us-central1 \
           --allow-unauthenticated \
+          --port 8000 \
           ${{ env.SERVICE_NAME }}
