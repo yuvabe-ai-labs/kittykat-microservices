@@ -1,11 +1,11 @@
-name: Display Changed Folders
+name: Detect Changes in watermark_service
 
 on:
   push:
     branches:
       - '**'   # Trigger on all branches
     paths:
-      - '**/*' # Monitor changes in all files
+      - 'watermark_service/**/*'  # Monitor changes only in watermark_service
 
 jobs:
   detect-changes:
@@ -15,40 +15,42 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Handle merge base commits and display folders
+      - name: Handle changes in watermark_service
         id: detect-changes
         run: |
-          # Check if it's a merge commit
-          if [[ $(git show --summary | grep 'Merge:') != "" ]]; then
-              last_changes=$(git show --summary | grep Merge: | xargs | awk '{print($3".."$2)}')
-              echo "Setting output for last merged commits ${last_changes}"
-              files_changed=$(git diff --no-commit-id --name-only -r ${last_changes} | xargs)
-          else
-              # Handle direct or stashed commits
-              commit_id=$(git rev-parse HEAD)
-              echo "Setting output for last non-merged commit ${commit_id}"
-              files_changed=$(git diff-tree --no-commit-id --name-only -r ${commit_id} | xargs)
-          fi
-          
-          # Print all changed files for debugging
+          # Get the commit ID
+          commit_id=$(git rev-parse HEAD)
+          echo "Setting output for last non-merged commit ${commit_id}"
+
+          # Get the files changed in the current commit
+          files_changed=$(git diff-tree --no-commit-id --name-only -r ${commit_id} | xargs)
+
+          # Print the list of changed files for debugging
           echo "Changed files: ${files_changed}"
 
-          # Initialize an array to store parent folders
+          # Initialize an array to store parent folders related to watermark_service
           parent_folders=()
 
-          # Loop through each changed file and extract the parent folder
+          # Loop through each changed file and check if it's part of watermark_service
           for i in ${files_changed[@]}; do
-              # Extract the folder path by getting everything before the first file name
-              parent_folder=$(dirname $i)
-              # Add the parent folder to the list
-              parent_folders+=($parent_folder)
+              # Check if the file belongs to the watermark_service directory
+              if [[ $i == watermark_service/* ]]; then
+                  parent_folder=$(dirname $i)
+                  parent_folders+=($parent_folder)
+              fi
           done
 
-          # Remove duplicates and sort the folder list
+          # If no changes in watermark_service, exit
+          if [ ${#parent_folders[@]} -eq 0 ]; then
+              echo "No changes detected in watermark_service"
+              exit 0
+          fi
+
+          # Remove duplicates and sort the parent folders
           parent_folders=($(printf "%s\n" "${parent_folders[@]}" | sort -u))
 
-          # Print all unique parent folders
-          echo "Changed folders: ${parent_folders[@]}"
+          # Print the changed folders in watermark_service
+          echo "Changed folders in watermark_service: ${parent_folders[@]}"
 
           # Format the final output for the matrix
           path=$(printf ",\"%s\"" "${parent_folders[@]}")
@@ -60,4 +62,4 @@ jobs:
 
       - name: Display changed folders
         run: |
-          echo "The following folders have been changed: ${{ env.matrix }}"
+          echo "The following folders in watermark_service have been changed: ${{ env.matrix }}"
