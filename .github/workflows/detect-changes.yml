@@ -1,4 +1,4 @@
-name: Detect Microservices Changes
+name: Display Changed Folders
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Handle merge base commits and detect Dockerfile changes
+      - name: Handle merge base commits and display folders
         id: detect-changes
         run: |
           # Check if it's a merge commit
@@ -33,59 +33,31 @@ jobs:
           # Print all changed files for debugging
           echo "Changed files: ${files_changed}"
 
-          # Initialize arrays
-          all_changes=($files_changed)
-
-          # Debugging output
-          if [ ${#all_changes[@]} -eq 0 ]; then
-            echo "No changes detected!"
-          fi
-
-          # Check if 'restart_all_services' was modified and update the list of changes
-          for i in "${all_changes[@]}"; do
-              if [[ $i == *"restart_all_services"* ]]; then
-                  data_sources=(data_sources/*/Dockerfile)
-                  analytics=(analytics/*/Dockerfile)
-                  common_services=(common_services/*/Dockerfile)
-                  all_changes=("${data_sources[@]}" "${analytics[@]}" "${common_services[@]}")
-                  break
-              fi
-          done
-
-          # Initialize parent folders array
+          # Initialize an array to store parent folders
           parent_folders=()
 
-          # Check if any of the directories contain a Dockerfile and are not ignored
-          for i in "${all_changes[@]}"; do
-              splits=(${i//\// })
-              service_folder="${splits[0]}/${splits[1]}"
-              dockerfile_location="$service_folder/Dockerfile"
-              ignore_file_location="$service_folder/.cicd_ignore"
-              
-              # Handle specific folders (data_sources, analytics, common_services)
-              if [[ "${splits[0]}" == "data_sources" || "${splits[0]}" == "analytics" || "${splits[0]}" == "common_services" ]]; then 
-                  if [ ! -f $dockerfile_location ]; then
-                      echo "Dockerfile not found for $service_folder!"
-                  elif [ -f $ignore_file_location ]; then
-                      echo "Ignoring the service - $service_folder"
-                  else
-                      parent_folders+=($service_folder)
-                  fi
-              fi
+          # Loop through each changed file and extract the parent folder
+          for i in ${files_changed[@]}; do
+              # Extract the folder path by getting everything before the first file name
+              parent_folder=$(dirname $i)
+              # Add the parent folder to the list
+              parent_folders+=($parent_folder)
           done
 
-          # Remove duplicates from the parent_folders array
+          # Remove duplicates and sort the folder list
           parent_folders=($(printf "%s\n" "${parent_folders[@]}" | sort -u))
-          echo "Parent folders to be deployed: ${parent_folders[@]}"
+
+          # Print all unique parent folders
+          echo "Changed folders: ${parent_folders[@]}"
 
           # Format the final output for the matrix
           path=$(printf ",\"%s\"" "${parent_folders[@]}")
           path=${path:1}
           echo "Final path: ${path}"
 
-          # Set output using environment files instead of set-output (deprecation warning fix)
+          # Set output using environment files for GitHub Actions
           echo "matrix={\"path\": [ $path ] }" >> $GITHUB_ENV
-          
-      - name: Display changed microservices
+
+      - name: Display changed folders
         run: |
-          echo "The following microservices have been changed: ${{ env.matrix }}"
+          echo "The following folders have been changed: ${{ env.matrix }}"
