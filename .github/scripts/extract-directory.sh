@@ -29,7 +29,7 @@ do
     service_folder=(${splits[0]}/${splits[1]})
     dockerfile_location="$service_folder/Dockerfile"
     ignore_file_location="$service_folder/.cicd_ignore"
-    if [[ "${splits[0]}" == "data_sources" || "${splits[0]}" == "analytics" || "${splits[0]}" == "common_services" ]]; then 
+    if [[ "${splits[0]}" == "text_embedding_service" || "${splits[0]}" == "watermark_service" || "${splits[0]}" == "image_embedding_service" ]]; then 
         if [ ! -f $dockerfile_location ]; then
             echo "Docker not found!"
         elif [ -f $ignore_file_location ]; then
