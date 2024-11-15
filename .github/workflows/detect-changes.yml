@@ -1,4 +1,4 @@
-name: Detect Changed Microservices
+name: Detect Microservices Changes
 
 on:
   push:
@@ -15,37 +15,72 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Print commit hashes for debugging
+      - name: Handle merge base commits and detect Dockerfile changes
+        id: detect-changes
         run: |
-          echo "Before Commit: ${{ github.event.before }}"
-          echo "Current Commit: ${{ github.sha }}"
-
-      - name: Identify changed microservices
-        id: changed
-        run: |
-          # List all directories at the root level (which represent microservices)
-          ALL_MICROSERVICES=$(ls -d */ | cut -f1 -d'/')
-          
-          # Check if 'before' commit hash is available, handle the first commit or invalid case
-          if [ -z "${{ github.event.before }}" ]; then
-            echo "No previous commit to compare against, exiting."
-            echo "changed_dirs=" >> $GITHUB_ENV
-            exit 0
-          fi
-
-          # Detect which directories have changes using git diff
-          CHANGED_DIRS=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E "^($ALL_MICROSERVICES)" | cut -d/ -f1 | sort -u)
-
-          # If no changes are detected, return an empty string
-          if [ -z "$CHANGED_DIRS" ]; then
-            echo "No microservices changed."
-            echo "changed_dirs=" >> $GITHUB_ENV
+          # Check if it's a merge commit
+          if [[ $(git show --summary | grep 'Merge:') != "" ]]; then
+              last_changes=$(git show --summary | grep Merge: | xargs | awk '{print($3".."$2)}')
+              echo "Setting output for last merged commits ${last_changes}"
+              files_changed=$(git diff --no-commit-id --name-only -r ${last_changes} | xargs)
           else
-            echo "Changed directories: $CHANGED_DIRS"
-            echo "changed_dirs=$CHANGED_DIRS" >> $GITHUB_ENV
+              # Handle direct or stashed commits
+              commit_id=$(git rev-parse HEAD)
+              echo "Setting output for last non-merged commit ${commit_id}"
+              files_changed=$(git diff-tree --no-commit-id --name-only -r ${commit_id} | xargs)
           fi
+          
+          # Print all changed files for debugging
+          echo "Changed files: ${files_changed}"
 
-      - name: Display changed directories
+          # Initialize arrays
+          all_changes=($files_changed)
+
+          # Check if 'restart_all_services' was modified and update the list of changes
+          for i in "${all_changes[@]}"; do
+              if [[ $i == *"restart_all_services"* ]]; then
+                  data_sources=(data_sources/*/Dockerfile)
+                  analytics=(analytics/*/Dockerfile)
+                  common_services=(common_services/*/Dockerfile)
+                  all_changes=("${data_sources[@]}" "${analytics[@]}" "${common_services[@]}")
+                  break
+              fi
+          done
+
+          # Initialize parent folders array
+          parent_folders=()
+
+          # Check if any of the directories contain a Dockerfile and are not ignored
+          for i in "${all_changes[@]}"; do
+              splits=(${i//\// })
+              service_folder="${splits[0]}/${splits[1]}"
+              dockerfile_location="$service_folder/Dockerfile"
+              ignore_file_location="$service_folder/.cicd_ignore"
+              
+              # Handle specific folders (data_sources, analytics, common_services)
+              if [[ "${splits[0]}" == "data_sources" || "${splits[0]}" == "analytics" || "${splits[0]}" == "common_services" ]]; then 
+                  if [ ! -f $dockerfile_location ]; then
+                      echo "Dockerfile not found for $service_folder!"
+                  elif [ -f $ignore_file_location ]; then
+                      echo "Ignoring the service - $service_folder"
+                  else
+                      parent_folders+=($service_folder)
+                  fi
+              fi
+          done
+
+          # Remove duplicates from the parent_folders array
+          parent_folders=($(printf "%s\n" "${parent_folders[@]}" | sort -u))
+          echo "Parent folders to be deployed: ${parent_folders[@]}"
+
+          # Format the final output for the matrix
+          path=$(printf ",\"%s\"" "${parent_folders[@]}")
+          path=${path:1}
+          echo "Final path: ${path}"
+
+          # Set output for the next job
+          echo "::set-output name=matrix::{\"path\": [ $path ] }"
+          
+      - name: Display changed microservices
         run: |
-          echo "The following microservices have been changed: ${{ env.changed_dirs }}"
-
+          echo "The following microservices have been changed: ${{ steps.detect-changes.outputs.matrix }}"
