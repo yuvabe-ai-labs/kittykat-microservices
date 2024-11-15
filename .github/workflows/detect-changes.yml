@@ -36,6 +36,11 @@ jobs:
           # Initialize arrays
           all_changes=($files_changed)
 
+          # Debugging output
+          if [ ${#all_changes[@]} -eq 0 ]; then
+            echo "No changes detected!"
+          fi
+
           # Check if 'restart_all_services' was modified and update the list of changes
           for i in "${all_changes[@]}"; do
               if [[ $i == *"restart_all_services"* ]]; then
@@ -78,9 +83,9 @@ jobs:
           path=${path:1}
           echo "Final path: ${path}"
 
-          # Set output for the next job
-          echo "::set-output name=matrix::{\"path\": [ $path ] }"
+          # Set output using environment files instead of set-output (deprecation warning fix)
+          echo "matrix={\"path\": [ $path ] }" >> $GITHUB_ENV
           
       - name: Display changed microservices
         run: |
-          echo "The following microservices have been changed: ${{ steps.detect-changes.outputs.matrix }}"
+          echo "The following microservices have been changed: ${{ env.matrix }}"
