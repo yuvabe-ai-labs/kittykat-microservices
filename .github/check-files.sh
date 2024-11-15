@@ -8,3 +8,4 @@ else
     commit_id=$(git rev-parse HEAD)
     echo "Setting output for last non merged commit ${commit_id}"
     echo "::set-output name=files::$(git diff-tree --no-commit-id --name-only -r ${commit_id} | xargs)"
+fi
