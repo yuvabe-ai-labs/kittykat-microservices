@@ -5,6 +5,9 @@ from typing import Optional
 from fastapi import HTTPException, UploadFile
 from PIL import Image
 from constants.path_constants import DEFAULT_WATERMARK_PATH, FONTS_DIR
+from google.cloud import storage
+from google.cloud.exceptions import GoogleCloudError
+from config.google_bucket import bucket
 
 
 def load_watermark_image(watermark_image: Optional[UploadFile]) -> Image:
@@ -15,7 +18,15 @@ def load_watermark_image(watermark_image: Optional[UploadFile]) -> Image:
                 status_code=404, detail="Default watermark image not found."
             )
         return Image.open(DEFAULT_WATERMARK_PATH).convert("RGBA")
-    return Image.open(watermark_image.file).convert("RGBA")
+    if not isinstance(watermark_image, UploadFile):
+        raise HTTPException(status_code=400, detail="Invalid watermark file format.")
+
+    try:
+        return Image.open(watermark_image.file).convert("RGBA")
+    except Exception as e:
+        raise HTTPException(
+            status_code=500, detail=f"Error loading watermark image: {str(e)}"
+        )
 
 
 def get_position(
@@ -62,3 +73,24 @@ def encode_image_to_base64(image: Image) -> str:
     image.save(img_bytes, format="WEBP")
     img_bytes.seek(0)
     return base64.b64encode(img_bytes.getvalue()).decode("utf-8")
+
+
+def upload_to_gcs(
+    image: Image, folder_path: str, file_name: str, quality: int = 80
+) -> str:
+    """Upload the reduced version of image to Google Cloud Storage and return the public URL."""
+    try:
+        # Save the image as WEBP format with compression
+        img_bytes = BytesIO()
+        image.save(img_bytes, format="WEBP", quality=quality)
+        img_bytes.seek(0)
+
+        # Upload the compressed image to GCS
+        compressed_blob = bucket.blob(f"{folder_path}/{file_name}")
+        compressed_blob.upload_from_file(img_bytes, content_type="image/webp")
+
+        # Return the public URL of the uploaded compressed image
+        return compressed_blob.public_url
+
+    except GoogleCloudError as e:
+        raise HTTPException(status_code=500, detail=f"Error uploading to GCS: {str(e)}")

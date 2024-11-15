@@ -54,4 +54,3 @@ echo $path
 
 # Update matrix
 echo "::set-output name=matrix::{\"path\": [ $path ] }"
-
