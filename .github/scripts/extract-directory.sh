@@ -10,10 +10,10 @@ echo $all_changes
 for i in ${all_changes[@]};
 do
     if [[ $i == *"restart_all_services"* ]]; then
-        data_sources=data_sources/*/Dockerfile
-        analytics=analytics/*/Dockerfile
-        common_services=common_services/*/Dockerfile
-        all_changes=("${data_sources[@]}" "${analytics[@]}" "${common_services[@]}")
+        watermark_service=watermark_service/*/Dockerfile
+        text_embedding_service=text_embedding_service/*/Dockerfile
+        image_embedding_service=image_embedding_service/*/Dockerfile
+        all_changes=("${watermark_service[@]}" "${text_embedding_service[@]}" "${image_embedding_service[@]}")
         break
     fi
 done

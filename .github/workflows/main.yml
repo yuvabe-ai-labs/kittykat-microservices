@@ -6,9 +6,9 @@ on:
             - staging
             - main
         paths:
-            # - "text_embedding_service/**"
+            - "text_embedding_service/**"
             - "watermark_service/**"
-            # - "image_embedding_service/**"
+            - "image_embedding_service/**"
 
 env:
     PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}

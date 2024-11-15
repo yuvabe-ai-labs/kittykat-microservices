@@ -10,10 +10,10 @@ echo $all_changes
 for i in ${all_changes[@]};
 do
     if [[ $i == *"restart_all_services"* ]]; then
-        data_sources=data_sources/*/Dockerfile
-        analytics=analytics/*/Dockerfile
-        common_services=common_services/*/Dockerfile
-        all_changes=("${data_sources[@]}" "${analytics[@]}" "${common_services[@]}")
+        watermark_service=watermark_service/*/Dockerfile
+        text_embedding_service=text_embedding_service/*/Dockerfile
+        image_embedding_service=image_embedding_service/*/Dockerfile
+        all_changes=("${watermark_service[@]}" "${text_embedding_service[@]}" "${image_embedding_service[@]}")
         break
     fi
 done
@@ -29,7 +29,7 @@ do
     service_folder=(${splits[0]}/${splits[1]})
     dockerfile_location="$service_folder/Dockerfile"
     ignore_file_location="$service_folder/.cicd_ignore"
-    if [[ "${splits[0]}" == "data_sources" || "${splits[0]}" == "analytics" || "${splits[0]}" == "common_services" ]]; then 
+    if [[ "${splits[0]}" == "text_embedding_service" || "${splits[0]}" == "watermark_service" || "${splits[0]}" == "image_embedding_service" ]]; then 
         if [ ! -f $dockerfile_location ]; then
             echo "Docker not found!"
         elif [ -f $ignore_file_location ]; then
