@@ -9,10 +9,6 @@ on:
             - "text_embedding_service/**"
             - "watermark_service/**"
             - "image_embedding_service/**"
-        #     - "**/deploy-service.yaml"
-        #     - "**/update-service-matrix.sh"
-        #     - "**/update-changed-files.sh"
-        #     - "**/touch_to_restart_all_services.txt"
 
 env:
     PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
