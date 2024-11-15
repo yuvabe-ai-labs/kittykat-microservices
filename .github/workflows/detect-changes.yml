@@ -1,0 +1,29 @@
+name: Detect Changed Microservices
+
+on:
+  push:
+    branches:
+      - main  # Trigger on push to the main branch
+    paths:
+      - '**/*'  # Listen to changes in any file in the repository
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    steps:
+      # Checkout the code
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Identify changed microservices dynamically
+      - name: Identify changed microservices
+        id: changed
+        run: |
+          # List all directories at the root level (which represent microservices)
+          ALL_MICROSERVICES=$(ls -d */ | cut -f1 -d'/')
+
+          # Detect which directories have changes using git diff
+          CHANGED_DIRS=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep -E "^($ALL_MICROSERVICES)" | cut -d/ -f1 | sort -u)
+
+          echo "Changed directories: $CHANGED_DIRS"
+          echo "::set-output name=changed_dirs::$CHANGED_DIRS"
