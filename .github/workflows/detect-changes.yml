@@ -3,21 +3,19 @@ name: Detect Changed Microservices
 on:
   push:
     branches:
-      - main  # Trigger on push to the main branch
+      - main
       - development
       - staging
     paths:
-      - '**/*'  # Listen to changes in any file in the repository
+      - '**/*'
 
 jobs:
   detect-changes:
     runs-on: ubuntu-latest
     steps:
-      # Checkout the code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Identify changed microservices dynamically
       - name: Identify changed microservices
         id: changed
         run: |
@@ -42,8 +40,7 @@ jobs:
             echo "Changed directories: $CHANGED_DIRS"
             echo "changed_dirs=$CHANGED_DIRS" >> $GITHUB_ENV
           fi
-          
-      # Print the changed directories to check the result
+
       - name: Display changed directories
         run: |
           echo "The following microservices have been changed: ${{ env.changed_dirs }}"
