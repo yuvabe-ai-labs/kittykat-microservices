@@ -1,0 +1,20 @@
+services/onnx_clip/data/*
+!services/onnx_clip/data/bpe_simple_vocab_16e6.txt.gz
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyo
+*.pdb
+
+# Ignore virtual environments
+venv/
+.venv/
+env/
+.env/
+
+
+# Ignore other development and IDE files
+*.DS_Store
+*.vscode/
+.idea/
