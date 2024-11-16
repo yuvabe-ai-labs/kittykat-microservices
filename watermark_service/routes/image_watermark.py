@@ -226,7 +226,7 @@ async def apply_watermark_from_urls(
                 # Upload to GCS and get the URL
                 image_url = upload_to_gcs(watermarked_image, folder_path, file_name)
                 watermarked_images.append(image_url)
-
+        print(watermarked_images)
         return JSONResponse(content={"images": watermarked_images})
     except requests.RequestException as e:
         raise HTTPException(
