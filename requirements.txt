@@ -1,0 +1,9 @@
+fastapi[standard]
+numpy
+requests
+pillow
+opencv-python
+onnxruntime
+regex
+ftfy
+opencv-python-headless
