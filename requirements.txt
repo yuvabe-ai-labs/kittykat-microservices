@@ -3,6 +3,6 @@ numpy
 pillow
 regex
 ftfy
-requests
 onnxruntime
 opencv-python-headless
+requests
