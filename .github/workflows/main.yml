@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - development
-      - staging
+      - stage
       - main
     paths:
       - "text_embedding_service/**"
