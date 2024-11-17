@@ -104,4 +104,5 @@ jobs:
           --region us-central1 \
           --allow-unauthenticated \
           --port 8000 \
+          --timeout 1200s \
           ${{ env.SERVICE_NAME }}
