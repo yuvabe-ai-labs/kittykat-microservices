@@ -1,8 +1,8 @@
 fastapi[standard]
 numpy
 pillow
+onnxruntime
 regex
 ftfy
-onnxruntime
 opencv-python-headless
 requests
