@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from endpoints import imageEmbeded
+from routes import imageEmbeded
 
 app = FastAPI()
 
