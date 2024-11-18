@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from endpoints import text_embedded
+from routes import text_embedded
 
 app = FastAPI()
 
