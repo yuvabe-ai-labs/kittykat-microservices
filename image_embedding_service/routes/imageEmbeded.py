@@ -16,10 +16,6 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-class Base64ImageRequest(BaseModel):
-    base64_image: str
-
-
 @router.post("/embedded-image", summary="Embedding a Image")
 async def embed_images(
     file: UploadFile = File(..., description="Image file to search by")
