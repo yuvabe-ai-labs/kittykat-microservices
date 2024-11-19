@@ -1,5 +1,5 @@
-# Use a slim Python 3.11 base image with Uvicorn and Gunicorn
 FROM tiangolo/uvicorn-gunicorn:python3.11-slim
+
 
 # Set the working directory to /app
 WORKDIR /app
