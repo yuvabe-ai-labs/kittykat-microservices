@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from routes import imageEmbeded
 from fastapi.middleware.cors import CORSMiddleware 
 
+
 app = FastAPI()
 
 app.add_middleware(
