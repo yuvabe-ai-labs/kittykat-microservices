@@ -1,27 +1,31 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11-slim
+FROM tiangolo/uvicorn-gunicorn:python3.11-slim
 
+
+# Set the working directory to /app
 WORKDIR /app
 
+# Copy the requirements file to install dependencies
 COPY requirements.txt .
 
-# Install necessary dependencies, including FastAPI and other required packages
+# Install necessary dependencies (FastAPI, ONNX Runtime, etc.)
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Ensure wget is available for downloading the model
-RUN apt-get update && apt-get install -y wget
+# Ensure wget and required dependencies are available
+RUN apt-get update && apt-get install -y wget && apt-get clean
 
-# Download the ONNX model file directly and save it in the desired path
+# Download the ONNX model file and save it in the desired path
 RUN mkdir -p /app/services/onnx_clip/data && \
-    wget -O /app/services/onnx_clip/data/clip_image_model_vitb32.onnx "https://storage.cloud.google.com/embedding_model_1/clip_image_model_vitb32.onnx"
+    wget -O /app/services/onnx_clip/data/clip_image_model_vitb32.onnx \
+    "https://storage.cloud.google.com/embedding_model_1/clip_image_model_vitb32.onnx"
 
 # Copy the FastAPI app code into the container
 COPY . .
 
-# Set environment variables (optional, for code references)
+# Set the model path as an environment variable (for reference in your code)
 ENV MODEL_PATH="/app/services/onnx_clip/data/clip_image_model_vitb32.onnx"
 
-# Expose port 8000 for FastAPI
+# Expose port 8000 to access the FastAPI app
 EXPOSE 8000
 
-# Use FastAPI's development server to run the app
+# Run the FastAPI app using Uvicorn
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
