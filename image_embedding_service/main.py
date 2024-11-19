@@ -1,6 +1,17 @@
 from fastapi import FastAPI
-from endpoints import imageEmbeded
+from routes.imageEmbeded import router as ImageEmbedRouter
+from fastapi.middleware.cors import CORSMiddleware
+
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app.include_router(imageEmbeded.router, tags=["Image-embedding"])
+
+app.include_router(ImageEmbedRouter, tags=["Image-embedding"])
+
