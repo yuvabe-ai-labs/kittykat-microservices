@@ -120,8 +120,21 @@ async def apply_watermark_and_store(
     position: Optional[str] = Form("bottom_right"),
     opacity: Optional[float] = Form(100.0),
     folder_paths: List[str] = Form(...),  # Accepting a list of folder paths
+    bucket_name: Optional[str] = Form(
+        None
+    ),  # Accepting the bucket name from the request
 ):
     try:
+        logger.info("Received request to apply watermark and store images.")
+
+        # Check if bucket_name is provided
+        if not bucket_name:
+            logger.error("Bucket name is required but not provided.")
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Bucket name is required."},
+            )
+
         # Load watermark image
         watermark = load_watermark_image(watermark_image)
         watermarked_images = []
@@ -130,6 +143,7 @@ async def apply_watermark_and_store(
         if len(original_images) != len(file_names) or len(original_images) != len(
             folder_paths
         ):
+            logger.error("Number of images, file names, and folder paths do not match.")
             return JSONResponse(
                 status_code=400,
                 content={
@@ -137,9 +151,13 @@ async def apply_watermark_and_store(
                 },
             )
 
+        logger.info(f"Processing {len(original_images)} images for watermarking.")
+
         for original_image, file_name, folder_path in zip(
             original_images, file_names, folder_paths
         ):
+            logger.info(f"Processing image: {file_name} in folder: {folder_path}")
+
             with Image.open(original_image.file).convert("RGBA") as original:
                 # Resize watermark based on original image dimensions
                 target_width = int(original.width * watermark_scale)
@@ -162,12 +180,17 @@ async def apply_watermark_and_store(
                 watermarked_image = original.copy()
                 watermarked_image.paste(resized_watermark, pos, resized_watermark)
 
-                # Upload to GCS and get the URL
-                image_url = upload_to_gcs(watermarked_image, folder_path, file_name)
+                # Upload to GCS and get the URL, using the provided bucket_name
+                image_url = upload_to_gcs(
+                    watermarked_image, folder_path, file_name, bucket_name
+                )
                 watermarked_images.append(image_url)
 
+        logger.info(f"Successfully processed {len(watermarked_images)} images.")
         return JSONResponse(content={"images": watermarked_images})
+
     except Exception as e:
+        logger.exception("An error occurred while processing the watermark.")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
@@ -175,19 +198,33 @@ async def apply_watermark_and_store(
 async def apply_watermark_from_urls(
     image_urls: List[str] = Form(...),
     file_names: List[str] = Form(...),
-    watermark_image: Optional[UploadFile] = Form(None),
+    watermark_image: Optional[UploadFile] = File(None),
     watermark_scale: Optional[float] = Form(0.15),
     position: Optional[str] = Form("bottom_right"),
     opacity: Optional[float] = Form(100.0),
-    folder_paths: List[str] = Form(...),  # Change to accept a list of folder paths
+    folder_paths: List[str] = Form(...),  # Accept a list of folder paths
+    bucket_name: Optional[str] = Form(None),  # Accept bucket name
 ):
-    """Apply watermark to images from a list of URLs, upload to GCS, and return the URLs."""
+    """
+    Apply watermark to images from a list of URLs, upload to GCS, and return the URLs.
+    """
     try:
+        logger.info("Received request to apply watermark and store images from URLs.")
+
+        # Check if bucket_name is provided
+        if not bucket_name:
+            logger.error("Bucket name is required but not provided.")
+            return JSONResponse(
+                status_code=400,
+                content={"error": "Bucket name is required."},
+            )
+
         watermark = load_watermark_image(watermark_image)
         watermarked_images = []
 
         # Validate the lengths of the inputs
         if len(image_urls) != len(file_names) or len(file_names) != len(folder_paths):
+            logger.error("Number of URLs, file names, and folder paths do not match.")
             return JSONResponse(
                 status_code=400,
                 content={
@@ -195,7 +232,10 @@ async def apply_watermark_from_urls(
                 },
             )
 
+        logger.info(f"Processing {len(image_urls)} images from URLs.")
+
         for idx, image_url in enumerate(image_urls):
+            logger.info(f"Downloading image from URL: {image_url}")
             response = requests.get(image_url)
             response.raise_for_status()  # Raise an error for bad responses
 
@@ -223,14 +263,24 @@ async def apply_watermark_from_urls(
 
                 file_name = file_names[idx]  # Use the provided file name
                 folder_path = folder_paths[idx]  # Use the corresponding folder path
+                logger.info(
+                    f"Uploading watermarked image: {file_name} to bucket: {bucket_name}, folder: {folder_path}"
+                )
+
                 # Upload to GCS and get the URL
-                image_url = upload_to_gcs(watermarked_image, folder_path, file_name)
+                image_url = upload_to_gcs(
+                    watermarked_image, folder_path, file_name, bucket_name
+                )
                 watermarked_images.append(image_url)
-        print(watermarked_images)
+
+        logger.info(f"Successfully processed {len(watermarked_images)} images.")
         return JSONResponse(content={"images": watermarked_images})
+
     except requests.RequestException as e:
-        raise HTTPException(
-            status_code=400, detail=f"Error downloading image: {str(e)}"
+        logger.exception("Error occurred while downloading an image.")
+        return JSONResponse(
+            status_code=400, content={"error": f"Error downloading image: {str(e)}"}
         )
     except Exception as e:
+        logger.exception("An error occurred while processing the watermark.")
         return JSONResponse(status_code=500, content={"error": str(e)})

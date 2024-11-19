@@ -76,10 +76,16 @@ def encode_image_to_base64(image: Image) -> str:
 
 
 def upload_to_gcs(
-    image: Image, folder_path: str, file_name: str, quality: int = 80
+    image: Image, folder_path: str, file_name: str, bucket_name: str, quality: int = 80
 ) -> str:
-    """Upload the reduced version of image to Google Cloud Storage and return the public URL."""
+    """Upload the reduced version of the image to Google Cloud Storage and return the public URL."""
     try:
+        # Initialize Google Cloud Storage client
+        client = storage.Client()
+
+        # Get the bucket using the bucket name provided by the user
+        bucket = client.bucket(bucket_name)
+
         # Save the image as WEBP format with compression
         img_bytes = BytesIO()
         image.save(img_bytes, format="WEBP", quality=quality)

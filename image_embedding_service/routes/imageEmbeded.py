@@ -6,6 +6,7 @@ from PIL import Image
 import base64
 import io
 from pydantic import BaseModel
+from image_embedding_service.models.models import Base64ImageRequest
 from services.image_search_utils import handle_image_embeddeding
 from services.image_process_utils import process_image_from_url
 from services.embed_utils import send_img_to_embed
@@ -14,10 +15,6 @@ router = APIRouter()
 
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-
-
-class Base64ImageRequest(BaseModel):
-    base64_image: str
 
 
 @router.post("/embedded-image", summary="Embedding a Image")

@@ -1,8 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 from services.handle_textSearch import handle_text_search
-
+from models.models import TextSearchRequest
 router = APIRouter()
 
 logger = logging.getLogger(__name__)
@@ -10,10 +9,6 @@ logging.basicConfig(level=logging.INFO)
 
 
 router = APIRouter()
-
-
-class TextSearchRequest(BaseModel):
-    search_query: str
 
 
 @router.post("/text-embedding", summary="Search by Text")
