@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-@router.post("/embedded-image", summary="Embedding a Image")
+@router.post("/image/embed/file", summary="Embedding a Image")
 async def embed_images(
     file: UploadFile = File(..., description="Image file to search by")
 ):
@@ -31,7 +31,7 @@ async def embed_images(
     return embedding
 
 
-@router.post("/embedded-image-url", summary="Embedding a Imagen from url")
+@router.post("/image/embed/url", summary="Embedding a Imagen from url")
 async def embed_images(url: str):
     """The search-by-image  endpoint allows users to search for similar images by uploading an image file. It accepts an image file, the number of top similar items to return (top_k), and a list of namespaces to search within. The image is processed to extract its embedding, and then the system retrieves similar images by comparing the embedding across the provided namespaces."""
     if not url:
@@ -43,7 +43,7 @@ async def embed_images(url: str):
     return embedding
 
 
-@router.post("/embedded-image-base64", summary="Embedding a base64 Image")
+@router.post("/image/embed/base64", summary="Embedding a base64 Image")
 async def embed_base64_image(request: Base64ImageRequest):
     """
     This endpoint allows users to search for similar images by providing an image in base64 format.
