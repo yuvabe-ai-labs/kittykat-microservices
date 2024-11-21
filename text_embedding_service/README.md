@@ -44,7 +44,7 @@ The request must include a JSON object with the following field:
 2. Navigate to the project directory:
 
    ```bash
-   ccd platform-services\text_embedding_service
+   cd platform-services\text_embedding_service
    ```
 
 3. Create and activate a virtual environment:
@@ -59,6 +59,17 @@ The request must include a JSON object with the following field:
 
    ```bash
    pip install -r requirements.txt
+   ```
+5. Download the Model File
+
+   Download the required model file from the following URL:
+   ```bash
+   https://storage.cloud.google.com/embedding_model_1/clip_text_model_vitb32.onnx
+   ```
+   Save the file to the following path in your project:
+
+   ```bash
+   text_embedding_service/services/onnx_clip/data/clip_text_model_vitb32.onnx
    ```
 
 
