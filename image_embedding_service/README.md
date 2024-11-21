@@ -25,7 +25,7 @@ Generates embeddings for an uploaded image file.
 
 **Response**
 - 200 OK: A successful response returns the generated embeddings 
-- 400 : Bad Request: Image file is missing.
+- 400 Bad Request: Image file is missing.
 
 ### **2. POST /image/embed/url**
 
@@ -39,7 +39,7 @@ Generates embeddings for an image provided via a URL.
 
 **Response**
 - 200 OK: A successful response returns the generated embeddings 
-- 400: Bad Request: URL is missing.
+- 400 Bad Request: URL is missing.
 
 ### **3. POST /image/embed/base64**
 
@@ -53,7 +53,7 @@ Generates embeddings for an image provided in base64 format.
 
 **Response**
 - 200 OK: A successful response returns the generated embeddings 
-- 400: Bad Request: URL is missing.
+- 400 Bad Request: URL is missing.
 
 
 ## Installation
