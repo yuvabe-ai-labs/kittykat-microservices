@@ -6,9 +6,9 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-async def handle_text_search(search_query: str):
+async def handle_text_search(text: str):
     try:
-        embedding1 = await send_text_to_embed(search_query)
+        embedding1 = await send_text_to_embed(text)
         return {"embedding": embedding1}  # Return the text embedding
     except Exception as e:
         raise HTTPException(
