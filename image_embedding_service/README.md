@@ -5,8 +5,6 @@ A Microservice for Backend API Layer for the Kittykat Platform.
 ## Table of Contents
 - [Definitions of Endpoints](#definitions-of-endpoints)
 - [Installation](#installation)
-- [Environment Variables](#environment-variables)
-- [Dependencies](#dependencies)
 - [Running the Application](#running-the-application)
 
 
