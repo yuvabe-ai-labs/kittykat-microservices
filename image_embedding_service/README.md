@@ -48,12 +48,12 @@ Generates embeddings for an image provided in base64 format.
 
 **Request Body:**  
 - **Parameter:**  
-  - `ubase64_image` (string,required): base64 encoded string of the image..
+  - `base64_image` (string,required): base64 encoded string of the image..
 
 
 **Response**
 - 200 OK: A successful response returns the generated embeddings 
-- 400 Bad Request: URL is missing.
+- 400 Bad Request: Base64 image data is missing.
 
 
 ## Installation
