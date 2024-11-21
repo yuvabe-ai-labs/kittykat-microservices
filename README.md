@@ -92,7 +92,7 @@ Generates embeddings for an image provided in base64 format.
    Save the file to the following path in your project:
 
    ```bash
-   image_embedding_service/services/onnx_clip/data/clip_text_model_vitb32.onnx
+   image_embedding_service/services/onnx_clip/data/clip_image_model_vitb32.onnx
    ```
 
 
