@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class TextSearchRequest(BaseModel):
+class TextRequest(BaseModel):
     text: str
 
 

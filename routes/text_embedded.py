@@ -1,7 +1,7 @@
 import logging
 from fastapi import APIRouter, HTTPException
 from services.handle_textSearch import handle_text_search
-from models.models import TextSearchRequest, TextEmbedResponse
+from models.models import TextRequest, TextEmbedResponse
 from exceptions.TextEmbedExceptions import TextNotFoundException
 
 router = APIRouter()
@@ -14,9 +14,9 @@ router = APIRouter()
 
 
 @router.post("/text/embed", summary="Search by Text", response_model=TextEmbedResponse)
-async def search_text(request: TextSearchRequest):
-    """The search_text endpoint performs a text-based search for similar images.
-    It takes a text query as input and returns the embeddings or similar images."""
+async def search_text(request: TextRequest):
+    """The text_embedded endpoint converts text to embeddibgs.
+    It takes a text query as input and returns the embeddings ."""
 
     text = request.text
 
