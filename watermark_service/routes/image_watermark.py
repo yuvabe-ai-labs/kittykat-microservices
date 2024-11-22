@@ -10,11 +10,14 @@ from helpers.watermarking_utils import (
     encode_image_to_base64,
     get_position,
     apply_opacity,
+    resize_image,
     upload_to_gcs,
 )
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+SAFE_PIXEL_LIMIT = 178956970
 
 
 @router.post("/file/watermark/image")
@@ -202,8 +205,8 @@ async def apply_watermark_from_urls(
     watermark_scale: Optional[float] = Form(0.15),
     position: Optional[str] = Form("bottom_right"),
     opacity: Optional[float] = Form(100.0),
-    folder_paths: List[str] = Form(...),  # Accept a list of folder paths
-    bucket_name: Optional[str] = Form(None),  # Accept bucket name
+    folder_paths: List[str] = Form(...),
+    bucket_name: Optional[str] = Form(None),
 ):
     """
     Apply watermark to images from a list of URLs, upload to GCS, and return the URLs.
@@ -211,7 +214,6 @@ async def apply_watermark_from_urls(
     try:
         logger.info("Received request to apply watermark and store images from URLs.")
 
-        # Check if bucket_name is provided
         if not bucket_name:
             logger.error("Bucket name is required but not provided.")
             return JSONResponse(
@@ -222,7 +224,6 @@ async def apply_watermark_from_urls(
         watermark = load_watermark_image(watermark_image)
         watermarked_images = []
 
-        # Validate the lengths of the inputs
         if len(image_urls) != len(file_names) or len(file_names) != len(folder_paths):
             logger.error("Number of URLs, file names, and folder paths do not match.")
             return JSONResponse(
@@ -237,41 +238,48 @@ async def apply_watermark_from_urls(
         for idx, image_url in enumerate(image_urls):
             logger.info(f"Downloading image from URL: {image_url}")
             response = requests.get(image_url)
-            response.raise_for_status()  # Raise an error for bad responses
+            response.raise_for_status()
 
-            with Image.open(BytesIO(response.content)).convert("RGBA") as original:
-                # Resize watermark based on original image dimensions
-                target_width = int(original.width * watermark_scale)
-                aspect_ratio = target_width / watermark.width
-                target_height = int(watermark.height * aspect_ratio)
-                resized_watermark = watermark.resize(
-                    (target_width, target_height), Image.LANCZOS
-                )
+            # Disable decompression bomb check temporarily
+            Image.MAX_IMAGE_PIXELS = None
 
-                # Apply opacity and position watermark
-                resized_watermark = apply_opacity(resized_watermark, opacity)
-                pos = get_position(
-                    position,
-                    original,
-                    resized_watermark.width,
-                    resized_watermark.height,
-                )
+            try:
+                with Image.open(BytesIO(response.content)) as original:
+                    original = resize_image(original)
+                    original = original.convert("RGBA")
 
-                # Create watermarked image
-                watermarked_image = original.copy()
-                watermarked_image.paste(resized_watermark, pos, resized_watermark)
+                    # Resize watermark based on original image dimensions
+                    target_width = int(original.width * watermark_scale)
+                    aspect_ratio = target_width / watermark.width
+                    target_height = int(watermark.height * aspect_ratio)
+                    resized_watermark = watermark.resize(
+                        (target_width, target_height), Image.LANCZOS
+                    )
 
-                file_name = file_names[idx]  # Use the provided file name
-                folder_path = folder_paths[idx]  # Use the corresponding folder path
-                logger.info(
-                    f"Uploading watermarked image: {file_name} to bucket: {bucket_name}, folder: {folder_path}"
-                )
+                    # Apply opacity and position watermark
+                    resized_watermark = apply_opacity(resized_watermark, opacity)
+                    pos = get_position(
+                        position,
+                        original,
+                        resized_watermark.width,
+                        resized_watermark.height,
+                    )
 
-                # Upload to GCS and get the URL
-                image_url = upload_to_gcs(
-                    watermarked_image, folder_path, file_name, bucket_name
-                )
-                watermarked_images.append(image_url)
+                    # Create watermarked image
+                    watermarked_image = original.copy()
+                    watermarked_image.paste(resized_watermark, pos, resized_watermark)
+
+                    # Upload to GCS
+                    file_name = file_names[idx]
+                    folder_path = folder_paths[idx]
+                    image_url = upload_to_gcs(
+                        watermarked_image, folder_path, file_name, bucket_name
+                    )
+                    watermarked_images.append(image_url)
+
+            finally:
+                # Restore the decompression bomb limit
+                Image.MAX_IMAGE_PIXELS = SAFE_PIXEL_LIMIT
 
         logger.info(f"Successfully processed {len(watermarked_images)} images.")
         return JSONResponse(content={"images": watermarked_images})
