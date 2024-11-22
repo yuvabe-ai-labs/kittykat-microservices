@@ -10,6 +10,7 @@ from models.models import Base64ImageRequest, ImageEmbedResponse
 from services.image_search_utils import handle_image_embeddeding
 from services.image_process_utils import process_image_from_url
 from services.embed_utils import send_img_to_embed
+from exceptions.ImageEmbedExceptions import urlNotFoundException
 
 router = APIRouter()
 
@@ -25,10 +26,8 @@ logging.basicConfig(level=logging.INFO)
 async def embed_images(url: str):
     """The search-by-image  endpoint allows users to search for similar images by uploading an image file. It accepts an image file, the number of top similar items to return (top_k), and a list of namespaces to search within. The image is processed to extract its embedding, and then the system retrieves similar images by comparing the embedding across the provided namespaces."""
     if not url:
-        raise HTTPException(
-            status_code=400, detail="Image file is required for the search."
-        )
+        logger.warning("Url not Provided.")
+        raise urlNotFoundException()
     # Handle image search
     embedding = await process_image_from_url(url)
     return embedding
-
