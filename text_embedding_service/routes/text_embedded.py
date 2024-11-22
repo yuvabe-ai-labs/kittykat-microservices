@@ -2,6 +2,7 @@ import logging
 from fastapi import APIRouter, HTTPException
 from services.handle_textSearch import handle_text_search
 from models.models import TextSearchRequest, TextEmbedResponse
+from exceptions.TextEmbedExceptions import TextNotFoundException
 
 router = APIRouter()
 
@@ -20,9 +21,8 @@ async def search_text(request: TextSearchRequest):
     text = request.text
 
     if not text:
-        raise HTTPException(
-            status_code=400, detail="Search query is required for text search."
-        )
+        logger.warning("Text not Provided.")
+        raise TextNotFoundException()
 
     embedding = await handle_text_search(text)
 
