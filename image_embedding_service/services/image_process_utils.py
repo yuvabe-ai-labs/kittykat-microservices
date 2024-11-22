@@ -15,6 +15,14 @@ def resize_image(img: Image.Image):
     """
     Resizes the image while maintaining the aspect ratio and compresses it.
     Converts the image to JPEG for better compression.
+
+    Parameters:
+        img (Image.Image): The PIL Image object to be processed.
+        filename (str): The original filename of the image, used for logging and metadata.
+
+    Returns:
+        dict: The embedding of the processed image and metadata for further storage or indexing.
+
     """
     quality = 85
     img = ImageOps.exif_transpose(img)
@@ -32,6 +40,12 @@ def resize_image(img: Image.Image):
 async def process_image_from_url(url: str):
     """
     Fetches an image from a URL, validates the format, and processes it.
+
+    Parameters:
+        url (str): The URL of the image to be fetched and processed.
+
+    Returns:
+        dict: A dictionary containing the processed image's embedding and metadata.
     """
     try:
         logging.info(f"Fetching image from URL: {url}")
@@ -56,8 +70,15 @@ async def process_image_from_url(url: str):
 
 async def process_image(img: Image.Image, filename: str):
     """
-    Converts, processes, resizes, and stores an image.
-    Generates an embedding and stores the image in GCP.
+    Converts, processes, resizes, and stores an image.Generates an embedding and stores the image in GCP.
+
+    Parameters:
+        img (Image.Image): The PIL Image object to be processed.
+        filename (str): The original filename of the image, used for logging and metadata.
+
+    Returns:
+        dict: The embedding of the processed image and metadata for further storage or indexing.
+
     """
     try:
         # Generate a unique filename for the image
