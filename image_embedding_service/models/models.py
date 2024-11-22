@@ -1,9 +1,10 @@
 from pydantic import BaseModel
+from typing import List
 
 
-class Base64ImageRequest(BaseModel):
-    base64_image: str
+class UrlRequest(BaseModel):
+    url: str
 
 
 class ImageEmbedResponse(BaseModel):
-    ImageEmbeddings: str
+    ImageEmbeddings: List[float]
