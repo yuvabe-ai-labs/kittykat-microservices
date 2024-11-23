@@ -30,103 +30,116 @@ async def embed_images(request: UrlRequest):
     """Endpoint to embed image from a provided URL, process it, and return image embeddings."""
 
     url = request.url
-    requestId = request.request_id
+    request_id = request.request_id
     response_id = uuid.uuid4().hex
 
     # Check if URL is provided
     if not url:
-        logger.warning("URL not provided.")
+        logger.warning(
+            f"{request_id}, Image Processing Warning: URL not provided, {response_id}"
+        )
         return ImageEmbedResponse(
-                url=url,
-                request_id=requestId,
-                response_id=response_id,
-                ImageEmbeddings=[],
-                Message="URL is Empty."
-            )
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=[],
+            Message="URL is Empty.",
+        )
 
     # Validate URL format
     try:
         UrlValidator(url=url)
     except ValidationError:
-        logger.warning(f"Invalid URL format provided: {url}")
+        logger.warning(
+            f"{request_id}, Image Processing Warning: Invalid URL format: {url}, {response_id}"
+        )
         return ImageEmbedResponse(
-                        url=url,
-                        request_id=requestId,
-                        response_id=response_id,
-                        ImageEmbeddings=[],
-                        Message="Invalid URL format provided."
-                    )
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=[],
+            Message="Invalid URL format provided.",
+        )
 
     # Check URL accessibility
     async with aiohttp.ClientSession() as session:
         try:
             async with session.get(url) as response:
                 if response.status == 401:  # Unauthorized
-                    logger.warning(f"URL requires authentication: {url}")
+                    logger.warning(
+                        f"{request_id}, Image Processing Warning: URL requires authentication: {url}, {response_id}"
+                    )
                     return ImageEmbedResponse(
                         url=url,
-                        request_id=requestId,
+                        request_id=request_id,
                         response_id=response_id,
                         ImageEmbeddings=[],
-                        Message="URL requires authentication."
+                        Message="URL requires authentication.",
                     )
                 elif response.status == 403:  # Forbidden
-                    logger.warning(f"URL is forbidden: {url}")
+                    logger.warning(
+                        f"{request_id}, Image Processing Warning: URL is forbidden: {url}, {response_id}"
+                    )
                     return ImageEmbedResponse(
                         url=url,
-                        request_id=requestId,
+                        request_id=request_id,
                         response_id=response_id,
                         ImageEmbeddings=[],
-                        Message="URL is Forbidden."
+                        Message="URL is Forbidden.",
                     )
                 elif response.status == 404:  # Not Found
-                    logger.warning(f"URL is Not Found: {url}")
+                    logger.warning(
+                        f"{request_id}, Image Processing Warning: URL is Not Found: {url}, {response_id}"
+                    )
                     return ImageEmbedResponse(
                         url=url,
-                        request_id=requestId,
+                        request_id=request_id,
                         response_id=response_id,
                         ImageEmbeddings=[],
-                        Message="URL is URL is Not Found"
+                        Message="URL is Not Found",
                     )
                 elif response.status != 200:  # Other HTTP errors
                     logger.warning(
-                        f"URL returned status code {response.status} for: {url}"
+                        f"{request_id}, Image Processing Warning: URL returned status code {response.status}, {response_id}"
                     )
                     raise HTTPException(
                         status_code=response.status,
                         detail=f"URL returned status code {response.status}.",
                     )
-                    
-                    
+
         except aiohttp.ClientError as e:
-            logger.warning(f"Error accessing the URL {url}: {e}")
+            logger.error(
+                f"{request_id}, Image Processing Error: Error accessing the URL {url}: {str(e)}, {response_id}"
+            )
             return ImageEmbedResponse(
-                        url=url,
-                        request_id=requestId,
-                        response_id=response_id,
-                        ImageEmbeddings=[],
-                        Message=f"Error accessing the URL {url}: {e}.",
-                    )
-        
-        
+                url=url,
+                request_id=request_id,
+                response_id=response_id,
+                ImageEmbeddings=[],
+                Message=f"Error accessing the URL {url}: {e}.",
+            )
 
     # Process image from URL
     try:
         embedding = await process_image_from_url(url)
-        logger.info(f"Successfully processed image from URL: {url}")
+        logger.info(
+            f"{request_id}, Image Processing Completed Successfully, {response_id}"
+        )
         return ImageEmbedResponse(
-                        url=url,
-                        request_id=requestId,
-                        response_id=response_id,
-                        ImageEmbeddings=embedding,
-                        Message="Success."
-                    )
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=embedding,
+            Message="Success.",
+        )
     except Exception as e:
-        logger.error(f"Failed to process image from URL: {url}. Error: {e}")
+        logger.error(
+            f"{request_id}, Image Processing Error: Failed to process image from URL {url}: {str(e)}, {response_id}"
+        )
         return ImageEmbedResponse(
-                        url=url,
-                        request_id=requestId,
-                        response_id=response_id,
-                        ImageEmbeddings=[],
-                        Message="Failed to process image from URL."
-                    )
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=[],
+            Message="Failed to process image from URL.",
+        )
