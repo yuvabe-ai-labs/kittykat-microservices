@@ -9,7 +9,7 @@ logging.basicConfig(level=logging.INFO)
 async def handle_text_search(text: str):
     try:
         embedding1 = await send_text_to_embed(text)
-        return {"embedding": embedding1}  # Return the text embedding
+        return embedding1  # Return the text embedding
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"An error occurred during text search: {e}"
