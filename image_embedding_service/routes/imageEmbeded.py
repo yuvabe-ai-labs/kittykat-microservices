@@ -11,6 +11,7 @@ from models.models import UrlRequest, ImageEmbedResponse, UrlValidator
 from services.image_search_utils import handle_image_embeddeding
 from services.image_process_utils import process_image_from_url
 from services.embed_utils import send_img_to_embed
+from services.image_dimension_validator import check_image_dimensions
 import aiohttp
 
 # Initialize router
@@ -118,6 +119,20 @@ async def embed_images(request: UrlRequest):
                 ImageEmbeddings=[],
                 Message=f"Error accessing the URL {url}: {e}.",
             )
+            
+    # Validate image dimensions
+    valid, message = await check_image_dimensions(url)
+    if not valid:
+        logger.warning(
+            f"{request_id}, Image Processing Warning: {message}, {response_id}"
+        )
+        return ImageEmbedResponse(
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=[],
+            Message=message,
+        )
 
     # Process image from URL
     try:
