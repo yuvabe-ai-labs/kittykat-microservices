@@ -3,7 +3,6 @@ import uuid
 from fastapi import APIRouter, HTTPException
 from services.handle_textSearch import handle_text_search
 from models.models import TextRequest, TextEmbedResponse
-from exceptions.TextEmbedExceptions import TextNotFoundException
 
 router = APIRouter()
 
