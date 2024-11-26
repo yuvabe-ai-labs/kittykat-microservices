@@ -22,6 +22,7 @@ async def handle_text_search(search_query: str):
         embedding1 = await send_text_to_embed(search_query)
         return embedding1  # Return the text embedding
 
+
     except Exception as e:
         # Raise an HTTP exception with the error message
         raise HTTPException(
