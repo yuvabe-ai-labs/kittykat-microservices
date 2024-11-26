@@ -1,136 +1,160 @@
 import logging
+import uuid
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, HTTPException, File, UploadFile
 import numpy as np
 from PIL import Image
 import base64
 import io
-from pydantic import BaseModel
-from models.models import Base64ImageRequest
+from pydantic import ValidationError
+from models.models import UrlRequest, ImageEmbedResponse, UrlValidator
 from services.image_search_utils import handle_image_embeddeding
 from services.image_process_utils import process_image_from_url
 from services.embed_utils import send_img_to_embed
+from services.image_dimension_validator import check_image_dimensions
+import aiohttp
 
+# Initialize router
 router = APIRouter()
 
+# Setup logger
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-@router.post("/embedded-image", summary="Embedding a Image")
-async def embed_images(
-    file: UploadFile = File(..., description="Image file to search by")
-):
-    """The search-by-image  endpoint allows users to search for similar images by uploading an image file. It accepts an image file, the number of top similar items to return (top_k), and a list of namespaces to search within. The image is processed to extract its embedding, and then the system retrieves similar images by comparing the embedding across the provided namespaces."""
-    if not file:
-        raise HTTPException(
-            status_code=400, detail="Image file is required for the search."
-        )
-    # Handle image search
-    embedding = await handle_image_embeddeding(file)
-    return embedding
+@router.post(
+    "/image/embed/url",
+    summary="Embedding an Image from a URL",
+    response_model=ImageEmbedResponse,
+)
+async def embed_images(request: UrlRequest):
+    """Endpoint to embed image from a provided URL, process it, and return image embeddings."""
 
+    url = request.url
+    request_id = request.request_id
+    response_id = uuid.uuid4().hex
 
-@router.post("/embedded-image-url", summary="Embedding a Imagen from url")
-async def embed_images(url: str):
-    """The search-by-image  endpoint allows users to search for similar images by uploading an image file. It accepts an image file, the number of top similar items to return (top_k), and a list of namespaces to search within. The image is processed to extract its embedding, and then the system retrieves similar images by comparing the embedding across the provided namespaces."""
+    # Check if URL is provided
     if not url:
-        raise HTTPException(
-            status_code=400, detail="Image file is required for the search."
+        logger.warning(
+            f"{request_id}, Image Processing Warning: URL not provided, {response_id}"
         )
-    # Handle image search
-    embedding = await process_image_from_url(url)
-    return embedding
-
-
-@router.post("/embedded-image-base64", summary="Embedding a base64 Image")
-async def embed_base64_image(request: Base64ImageRequest):
-    """
-    This endpoint allows users to search for similar images by providing an image in base64 format.
-    It accepts a base64 string, processes it to extract its embedding, and returns the embedding.
-    """
-    base64_image = request.base64_image
-
-    if not base64_image:
-        raise HTTPException(
-            status_code=400, detail="Base64 image data is required for the search."
+        return ImageEmbedResponse(
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=[],
+            Message="URL is Empty.",
         )
 
+    # Validate URL format
     try:
-        # Decode the base64 string to bytes
-        image_data = base64.b64decode(base64_image)
-        image = Image.open(io.BytesIO(image_data))
-
-        # Convert RGBA to RGB if needed
-        if image.mode == "RGBA":
-            image = image.convert("RGB")
-
-        # Get the embedding
-        embedding = await send_img_to_embed(image)
-        return {"embedding": embedding}  # Return the image embedding
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"An error occurred during image embedding: {e}"
+        UrlValidator(url=url)
+    except ValidationError:
+        logger.warning(
+            f"{request_id}, Image Processing Warning: Invalid URL format: {url}, {response_id}"
+        )
+        return ImageEmbedResponse(
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=[],
+            Message="Invalid URL format provided.",
         )
 
+    # Check URL accessibility
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(url) as response:
+                if response.status == 401:  # Unauthorized
+                    logger.warning(
+                        f"{request_id}, Image Processing Warning: URL requires authentication: {url}, {response_id}"
+                    )
+                    return ImageEmbedResponse(
+                        url=url,
+                        request_id=request_id,
+                        response_id=response_id,
+                        ImageEmbeddings=[],
+                        Message="URL requires authentication.",
+                    )
+                elif response.status == 403:  # Forbidden
+                    logger.warning(
+                        f"{request_id}, Image Processing Warning: URL is forbidden: {url}, {response_id}"
+                    )
+                    return ImageEmbedResponse(
+                        url=url,
+                        request_id=request_id,
+                        response_id=response_id,
+                        ImageEmbeddings=[],
+                        Message="URL is Forbidden.",
+                    )
+                elif response.status == 404:  # Not Found
+                    logger.warning(
+                        f"{request_id}, Image Processing Warning: URL is Not Found: {url}, {response_id}"
+                    )
+                    return ImageEmbedResponse(
+                        url=url,
+                        request_id=request_id,
+                        response_id=response_id,
+                        ImageEmbeddings=[],
+                        Message="URL is Not Found",
+                    )
+                elif response.status != 200:  # Other HTTP errors
+                    logger.warning(
+                        f"{request_id}, Image Processing Warning: URL returned status code {response.status}, {response_id}"
+                    )
+                    raise HTTPException(
+                        status_code=response.status,
+                        detail=f"URL returned status code {response.status}.",
+                    )
 
-# @router.post("/embedded-image-list", summary="Embedding multiple images")
-# async def embed_images(
-#     files: List[UploadFile] = File(..., description="List of image files to search by")
-# ):
-#     """The search-by-image endpoint allows users to search for similar images by uploading multiple image files.
-#     It accepts a list of image files and processes each image to extract its embedding.
-#     The response is a dictionary with the index of each image as the key and the embedding as the value.
-#     """
+        except aiohttp.ClientError as e:
+            logger.error(
+                f"{request_id}, Image Processing Error: Error accessing the URL {url}: {str(e)}, {response_id}"
+            )
+            return ImageEmbedResponse(
+                url=url,
+                request_id=request_id,
+                response_id=response_id,
+                ImageEmbeddings=[],
+                Message=f"Error accessing the URL {url}: {e}.",
+            )
+            
+    # Validate image dimensions
+    valid, message = await check_image_dimensions(url)
+    if not valid:
+        logger.warning(
+            f"{request_id}, Image Processing Warning: {message}, {response_id}"
+        )
+        return ImageEmbedResponse(
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=[],
+            Message=message,
+        )
 
-#     if not files or len(files) == 0:
-#         raise HTTPException(
-#             status_code=400,
-#             detail="At least one image file is required for the search.",
-#         )
-
-#     # Dictionary to hold index and corresponding embedding
-#     embeddings_dict = {}
-
-#     for index, file in enumerate(files):
-#         # Validate that the file is an image
-#         if not file.content_type.startswith("image/"):
-#             raise HTTPException(
-#                 status_code=400,
-#                 detail=f"File at index {index} is not a valid image type.",
-#             )
-
-#         # Process the image to extract its embedding
-#         embedding = await handle_image_search(file)
-#         embeddings_dict[index] = embedding
-
-#     return embeddings_dict
-
-
-# @router.post("/embedded-image-multiple-urls", summary="Embedding images from URLs")
-# async def embed_images(urls: List[str]):
-#     """The search-by-image endpoint allows users to search for similar images by providing a list of image URLs.
-#     It processes each URL to extract its embedding and returns a dictionary with the index of the URL as the key
-#     and the embedding as the value."""
-
-#     if not urls or len(urls) == 0:
-#         raise HTTPException(
-#             status_code=400, detail="At least one image URL is required for the search."
-#         )
-
-#     # Dictionary to hold index and corresponding embedding
-#     embeddings_dict = {}
-
-#     for index, url in enumerate(urls):
-#         # Validate that the URL is not empty or malformed
-#         if not url.startswith("http"):
-#             raise HTTPException(
-#                 status_code=400, detail=f"URL at index {index} is not a valid URL."
-#             )
-
-#         # Process the image from the URL to extract its embedding
-#         embedding = await process_image_from_url(url)
-#         embeddings_dict[index] = embedding
-
-#     return embeddings_dict
+    # Process image from URL
+    try:
+        embedding = await process_image_from_url(url)
+        logger.info(
+            f"{request_id}, Image Processing Completed Successfully, {response_id}"
+        )
+        return ImageEmbedResponse(
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=embedding,
+            Message="Success.",
+        )
+    except Exception as e:
+        logger.error(
+            f"{request_id}, Image Processing Error: Failed to process image from URL {url}: {str(e)}, {response_id}"
+        )
+        return ImageEmbedResponse(
+            url=url,
+            request_id=request_id,
+            response_id=response_id,
+            ImageEmbeddings=[],
+            Message="Failed to process image from URL.",
+        )
