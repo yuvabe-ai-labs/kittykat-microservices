@@ -12,4 +12,5 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 app.include_router(image_router)

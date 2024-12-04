@@ -10,7 +10,7 @@ on:
       - "text_embedding_service/**"
       - "watermark_service/**"
       - "image_embedding_service/**"
-      - "thumbnail_service/**"
+      - "thumbnail_service/**"  
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
