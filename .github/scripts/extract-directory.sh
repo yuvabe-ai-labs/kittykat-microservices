@@ -13,7 +13,8 @@ for i in "${all_changes[@]}"; do
         watermark_service=(watermark_service/Dockerfile)
         text_embedding_service=(text_embedding_service/Dockerfile)
         image_embedding_service=(image_embedding_service/Dockerfile)
-        all_changes=("${watermark_service[@]}" "${text_embedding_service[@]}" "${image_embedding_service[@]}")
+        thumbnail_service=(thumbnail_service/Dockerfile)  # Add thumbnail_service
+        all_changes=("${watermark_service[@]}" "${text_embedding_service[@]}" "${image_embedding_service[@]}" "${thumbnail_service[@]}")
         break
     fi
 done
@@ -32,7 +33,8 @@ for i in "${all_changes[@]}"; do
     # Check if the change belongs to a valid service and handle accordingly
     if [[ "${splits[0]}" == "text_embedding_service" || \
           "${splits[0]}" == "watermark_service" || \
-          "${splits[0]}" == "image_embedding_service" ]]; then 
+          "${splits[0]}" == "image_embedding_service" || \
+          "${splits[0]}" == "thumbnail_service" ]]; then 
         
         # Check if Dockerfile exists
         if [ ! -f "$dockerfile_location" ]; then
