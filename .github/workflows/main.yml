@@ -10,7 +10,7 @@ on:
       - "text_embedding_service/**"
       - "watermark_service/**"
       - "image_embedding_service/**"
-      - "thumbnail_service/**"  
+      - "thumbnail_service/**"
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -83,6 +83,12 @@ jobs:
       - name: Update Environment Variables
         run: |-
           MATRIX_PATH="${{ matrix.path }}"
+          echo "MATRIX_PATH=$MATRIX_PATH"  # Debugging the value of MATRIX_PATH
+          if [ -z "$MATRIX_PATH" ]; then
+            echo "Error: MATRIX_PATH is empty. Exiting."
+            exit 1
+          fi
+          
           FOLDER=$(basename $MATRIX_PATH)
           SERVICE_NAME=platform-$FOLDER-$STAGE_TYPE
           SERVICE_NAME=${SERVICE_NAME//_/-}
