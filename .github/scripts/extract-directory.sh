@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# Define the list of services
+services=(
+    "text_embedding_service"
+    "watermark_service"
+    "image_embedding_service"
+    "thumbnail_service"
+    "brand_info_extraction_service"
+)
+
 # Accepts changes from the previous step
 all_changes=("$@")
 echo "All changes::"
@@ -9,12 +18,10 @@ echo "${all_changes[@]}"
 # If modified, include all services in the changes
 for i in "${all_changes[@]}"; do
     if [[ $i == *"restart_all_services"* ]]; then
-        # Directly specify Dockerfile paths for all services
-        watermark_service=(watermark_service/Dockerfile)
-        text_embedding_service=(text_embedding_service/Dockerfile)
-        image_embedding_service=(image_embedding_service/Dockerfile)
-        thumbnail_service=(thumbnail_service/Dockerfile)  # Add thumbnail_service
-        all_changes=("${watermark_service[@]}" "${text_embedding_service[@]}" "${image_embedding_service[@]}" "${thumbnail_service[@]}")
+        all_changes=()
+        for service in "${services[@]}"; do
+            all_changes+=("$service/Dockerfile")
+        done
         break
     fi
 done
@@ -31,11 +38,7 @@ for i in "${all_changes[@]}"; do
     ignore_file_location="$service_folder/.cicd_ignore"
     
     # Check if the change belongs to a valid service and handle accordingly
-    if [[ "${splits[0]}" == "text_embedding_service" || \
-          "${splits[0]}" == "watermark_service" || \
-          "${splits[0]}" == "image_embedding_service" || \
-          "${splits[0]}" == "thumbnail_service" ]]; then 
-        
+    if [[ " ${services[*]} " == *" $service_folder "* ]]; then
         # Check if Dockerfile exists
         if [ ! -f "$dockerfile_location" ]; then
             echo "Dockerfile not found in $service_folder!"
