@@ -10,6 +10,8 @@ on:
       - "text_embedding_service/**"
       - "watermark_service/**"
       - "image_embedding_service/**"
+      - "thumbnail_service/**"
+      - "brand_info_extraction_service/**"
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -82,6 +84,12 @@ jobs:
       - name: Update Environment Variables
         run: |-
           MATRIX_PATH="${{ matrix.path }}"
+          echo "MATRIX_PATH=$MATRIX_PATH"  # Debugging the value of MATRIX_PATH
+          if [ -z "$MATRIX_PATH" ]; then
+            echo "Error: MATRIX_PATH is empty. Exiting."
+            exit 1
+          fi
+          
           FOLDER=$(basename $MATRIX_PATH)
           SERVICE_NAME=platform-$FOLDER-$STAGE_TYPE
           SERVICE_NAME=${SERVICE_NAME//_/-}
@@ -98,11 +106,25 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |-
-          gcloud run deploy \
-          --image ${{ env.IMAGE_URL }} \
-          --platform managed \
-          --region us-central1 \
-          --allow-unauthenticated \
-          --port 8000 \
-          --timeout 1200s \
-          ${{ env.SERVICE_NAME }}
+          if [[ "${{ matrix.path }}" == *"brand_info_extraction_service"* ]]; then
+            echo "Deploying brand_info_extraction_service with OPENAI_API_KEY"
+            gcloud run deploy \
+            ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE_URL }} \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --port 8000 \
+            --timeout 1200s \
+            --update-env-vars OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          else
+            echo "Deploying ${{ env.SERVICE_NAME }} without OPENAI_API_KEY"
+            gcloud run deploy \
+            ${{ env.SERVICE_NAME }} \
+            --image ${{ env.IMAGE_URL }} \
+            --platform managed \
+            --region us-central1 \
+            --allow-unauthenticated \
+            --port 8000 \
+            --timeout 1200s
+          fi
