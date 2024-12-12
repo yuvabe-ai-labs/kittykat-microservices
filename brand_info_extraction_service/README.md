@@ -61,13 +61,13 @@ For all error cases, the response will include empty attributes and a specific e
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/your-repo/brand-analysis-service.git
+   git clone https://github.com/kittykat-ai/platform-services.git
    ```
 
 2. Navigate to the project directory:
 
    ```bash
-   cd brand-analysis-service
+   cd brand_info_extraction_service
    ```
 
 3. Create and activate a virtual environment:
