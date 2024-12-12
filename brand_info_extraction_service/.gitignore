@@ -1,6 +1,4 @@
 __pycache__/*
-services/onnx_clip/data/*
-!services/onnx_clip/data/bpe_simple_vocab_16e6.txt.gz
 *.pyc
 *.pyo
 *.pyd
