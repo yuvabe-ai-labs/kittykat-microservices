@@ -4,13 +4,12 @@ FROM tiangolo/uvicorn-gunicorn:python3.11-slim
 # Set the working directory to /app
 WORKDIR /app
 
-# Install required system dependencies for Google Chrome and ChromeDriver
+# Install dependencies for building (e.g., for ChromeDriver)
 RUN apt-get update && apt-get install -y \
-    wget \
     curl \
     unzip \
+    wget \
     ca-certificates \
-    fontconfig \
     libx11-dev \
     libxcomposite-dev \
     libxdamage-dev \
@@ -27,14 +26,18 @@ RUN apt-get update && apt-get install -y \
     libxrandr2 \
     libxss1 \
     lsb-release \
+    fonts-liberation \
+    libvulkan1 \
+    xdg-utils \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Google Chrome (headless)
+# Install Google Chrome
 RUN wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb \
     && dpkg -i google-chrome-stable_current_amd64.deb \
     && apt-get install -f -y \
     && rm google-chrome-stable_current_amd64.deb
+
 
 # Install ChromeDriver
 RUN LATEST=$(curl -sSL https://chromedriver.storage.googleapis.com/LATEST_RELEASE) \
