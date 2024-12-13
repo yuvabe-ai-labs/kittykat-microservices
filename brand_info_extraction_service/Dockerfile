@@ -1,19 +1,9 @@
-FROM tiangolo/uvicorn-gunicorn-fastapi:python3.11-slim
+FROM tiangolo/uvicorn-gunicorn:python3.11-slim
 
 WORKDIR /app
 
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
+
 COPY . .
-
-
-# Install necessary dependencies, including FastAPI and other required packages
-RUN pip install --no-cache-dir -r requirements.txt
-
-
-
-
-
-
-
-
-
-
