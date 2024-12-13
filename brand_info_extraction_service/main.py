@@ -1,15 +1,18 @@
 from fastapi import FastAPI
-from routes.brand_data import router as brand_data_router
+from routes import brand_analysis
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI()
+
+app = FastAPI()  
+
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],  # Allows all origins, but you can restrict this
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
 )
-# Include the brand data router
-app.include_router(brand_data_router, tags=["Brand Data"])
+
+# Include video processing routes
+app.include_router(brand_analysis.router,tags=["Brand Data"])
