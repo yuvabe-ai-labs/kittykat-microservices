@@ -3,6 +3,7 @@ from services.color_scrap_utils import extract_dominant_colors
 from services.fonts_utils import extract_fonts
 from services.title_and_desc_utils import extract_title_desc
 from services.logo_scrap_utils import extract_logos
+from services.favicon_utils import extract_favicon_url
 from dotenv import load_dotenv
 import os
 
@@ -25,6 +26,7 @@ def generate_brand_json(url):
     brand_colors =  extract_dominant_colors(url)
     brand_logo =  extract_logos(url)
     brand_fonts = extract_fonts(url)
+    favicons = extract_favicon_url(url)
     prompt = f"""
         Based on the following brand details, generate a JSON object with the given structure:
         {{
@@ -34,7 +36,7 @@ def generate_brand_json(url):
         "brand_colors": [{', '.join([f'"{color}"' for color in brand_colors])}],  # Ensure colors are in a list format
         "brand_fonts": [{', '.join([f'"{font}"' for font in brand_fonts])}],  # Ensure fonts are in a list format and only include valid fonts
         "brand_logo": [{', '.join([f'"{logo}"' for logo in brand_logo])}]  # Validate and include only perfect URLs for the company logo(s) rather than the path, avoiding non-standard or duplicate logos
-        "favicon" : [] # give favicon if found
+        "favicon" : [{', '.join([f'"{favicon}"' for favicon in favicons])}]
         }}
         """
 
