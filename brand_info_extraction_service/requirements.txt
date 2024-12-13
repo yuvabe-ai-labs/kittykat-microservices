@@ -4,3 +4,4 @@ openai
 selenium
 bs4
 webdriver-manager
+dotenv
