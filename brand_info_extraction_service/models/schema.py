@@ -23,6 +23,7 @@ class BrandAnalysisResponse(BaseModel):
     brand_colors: List[str] = Field(..., description="The color codes associated with the brand.")
     brand_fonts: List[str] = Field(..., description="The font names used by the brand.")
     brand_logo: List[str] = Field(..., description="Array of logo URLs for the brand.")
+    favicon : List[str]
 
     class Config:
         json_schema_extra = {
@@ -35,7 +36,8 @@ class BrandAnalysisResponse(BaseModel):
                 "brand_logo": [
                     "https://www.example.com/logo1.png",
                     "https://www.example.com/logo2.png"
-                ]
+                ],
+                "favicon": []
             }
         }
 

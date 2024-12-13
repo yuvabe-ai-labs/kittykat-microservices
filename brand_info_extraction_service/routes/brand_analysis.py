@@ -32,7 +32,8 @@ async def get_analysis(request: BrandUrlRequest):
             brand_description="",
             brand_colors=[],
             brand_fonts=[],
-            brand_logo=[]
+            brand_logo=[],
+            favicon= []
         )
     
 
@@ -49,7 +50,8 @@ async def get_analysis(request: BrandUrlRequest):
             brand_description="",
             brand_colors=[],
             brand_fonts=[],
-            brand_logo=[]
+            brand_logo=[],
+            favicon= []
         )
 
     try:
@@ -70,7 +72,8 @@ async def get_analysis(request: BrandUrlRequest):
             brand_description=output["brand_description"],
             brand_colors=output["brand_colors"],
             brand_fonts=output["brand_fonts"],
-            brand_logo=output["brand_logo"]
+            brand_logo=output["brand_logo"],
+            favicon= output["favicon"]
         )
     except Exception as e:
         raise HTTPException(
