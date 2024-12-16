@@ -4,6 +4,8 @@ FROM tiangolo/uvicorn-gunicorn:python3.11-slim
 # Set the working directory to /app
 WORKDIR /app
 
+EXPOSE 8001
+
 # Install Playwright dependencies and Playwright itself
 RUN pip install --no-cache-dir playwright \
     && playwright install
@@ -45,3 +47,5 @@ RUN pip install --no-cache-dir --upgrade -r requirements.txt
 
 # Copy the rest of the application code into the container
 COPY . .
+
+CMD ["uvicorn" ,"main:app" ,"--reload" ,"--host", "0.0.0.0" ,"--port" ,"8001"]
