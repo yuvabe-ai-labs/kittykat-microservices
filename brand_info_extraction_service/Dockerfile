@@ -4,6 +4,10 @@ FROM tiangolo/uvicorn-gunicorn:python3.11-slim
 # Set the working directory to /app
 WORKDIR /app
 
+# Install Playwright dependencies and Playwright itself
+RUN pip install --no-cache-dir playwright \
+    && playwright install
+
 # Install system dependencies for Playwright
 RUN apt-get update && apt-get install -y \
     curl \
@@ -31,9 +35,7 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Playwright dependencies and Playwright itself
-RUN pip install --no-cache-dir playwright \
-    && playwright install
+
 
 # Copy the requirements.txt first to leverage Docker's cache mechanism
 COPY requirements.txt .
