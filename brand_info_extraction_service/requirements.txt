@@ -1,7 +1,7 @@
 fastapi[standard]
 requests
 openai
-selenium
 bs4
-webdriver-manager
-dotenv
+playwright
+aiohttp
+

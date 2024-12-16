@@ -1,4 +1,5 @@
 from openai import OpenAI
+import asyncio
 from services.color_scrap_utils import extract_dominant_colors
 from services.fonts_utils import extract_fonts
 from services.title_and_desc_utils import extract_title_desc
@@ -11,7 +12,7 @@ load_dotenv()
 
 api_key = os.getenv("OPENAI_API_KEY")
 
-def generate_brand_json(url):
+async def generate_brand_json(url):
     """
     Generates a JSON output with brand details based on the extracted information.
 
@@ -22,11 +23,11 @@ def generate_brand_json(url):
         dict: A JSON object with brand details.
     """
 
-    brand_name, brand_description = extract_title_desc(url)
-    brand_colors =  extract_dominant_colors(url)
-    brand_logo =  extract_logos(url)
-    brand_fonts = extract_fonts(url)
-    favicons = extract_favicon_url(url)
+    brand_name, brand_description = await extract_title_desc(url)
+    brand_colors =  await extract_dominant_colors(url)
+    brand_logo =  await extract_logos(url)
+    brand_fonts = await extract_fonts(url)
+    favicons = await extract_favicon_url(url)
     prompt = f"""
         Based on the following brand details, generate a JSON object with the given structure:
         {{
@@ -36,7 +37,7 @@ def generate_brand_json(url):
         "brand_colors": [{', '.join([f'"{color}"' for color in brand_colors])}],  # Ensure colors are in a list format
         "brand_fonts": [{', '.join([f'"{font}"' for font in brand_fonts])}],  # Ensure fonts are in a list format and only include valid fonts
         "brand_logo": [{', '.join([f'"{logo}"' for logo in brand_logo])}]  # Validate and include only perfect URLs for the company logo(s) rather than the path, avoiding non-standard or duplicate logos
-        "favicon" : [{', '.join([f'"{favicon}"' for favicon in favicons])}]
+        "favicon" : [{favicons}]  # put the favicon into the list
         }}
         """
 

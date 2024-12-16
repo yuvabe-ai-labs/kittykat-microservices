@@ -1,45 +1,54 @@
+import asyncio
+from playwright.async_api import async_playwright
 import re
-import requests
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options 
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+import aiohttp
 from bs4 import BeautifulSoup
 
-def extract_fonts(url):
+async def fetch_css(session, css_url, url):
     """
-    Extract and clean fonts from a dynamically rendered webpage.
+    Fetch the content of a CSS file asynchronously.
+    :param session: aiohttp session object
+    :param css_url: URL of the CSS file
+    :param url: The base URL to resolve relative links
+    :return: CSS content as string
+    """
+    if not css_url.startswith('http'):
+        css_url = url + css_url  # Handle relative URL
+
+    try:
+        async with session.get(css_url) as response:
+            if response.status == 200:
+                return await response.text()
+    except Exception as e:
+        print(f"Failed to fetch CSS file: {css_url}. Error: {e}")
+        return ''
+
+async def extract_fonts(url):
+    """
+    Extract and clean fonts from a dynamically rendered webpage asynchronously.
     :param url: The URL of the webpage
     :return: List of unique fonts in clean, formatted output
     """
-    # Set up Selenium WebDriver with Chrome
-    chrome_options = Options()
-    chrome_options.add_argument("--headless")  # Run in headless mode
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
+    async with async_playwright() as p:
+        # Launch a headless browser
+        browser = await p.chromium.launch(headless=True)
+        context = await browser.new_context(
+            user_agent='Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
+        )
+        page = await context.new_page()
 
-    user_agent = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/60.0.3112.50 Safari/537.36'
-    chrome_options.add_argument(f'user-agent={user_agent}')
-    
-    # Initialize the WebDriver
-    driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+        # Navigate to the URL
+        await page.goto(url)
 
-    try:
-        # Open the dynamic webpage
-        driver.get(url)
-        
-        # Wait for the page to load dynamically rendered content
-        driver.implicitly_wait(10)  # Wait up to 10 seconds for the page to load
+        # Wait for the page to load completely
+        await page.wait_for_load_state("domcontentloaded")
 
-        # Get the page source after the JavaScript has rendered the content
-        page_source = driver.page_source
+        # Get the page content
+        page_source = await page.content()
 
-        # Parse the page with BeautifulSoup
+        # Parse with BeautifulSoup
         soup = BeautifulSoup(page_source, 'html.parser')
 
-        # Extract fonts using the original method
         fonts = set()
         font_pattern = re.compile(r'font-family\s*:\s*([^;]+)')  # Regex to find font-family
 
@@ -51,21 +60,24 @@ def extract_fonts(url):
                 for match in matches:
                     fonts.update([font.strip() for font in match.split(',')])
 
-        # Extract fonts from external CSS files
+        # Extract fonts from external CSS files asynchronously
         link_tags = soup.find_all('link', rel='stylesheet')
-        for link in link_tags:
-            css_url = link.get('href')
-            if css_url:
-                # Handle relative and absolute URLs
-                css_url = css_url if css_url.startswith('http') else url + css_url
-                try:
-                    css_response = requests.get(css_url)
-                    if css_response.status_code == 200:
-                        matches = font_pattern.findall(css_response.text)
-                        for match in matches:
-                            fonts.update([font.strip() for font in match.split(',')])
-                except requests.exceptions.RequestException as e:
-                    print(f"Failed to fetch CSS file: {css_url}. Error: {e}")
+        async with aiohttp.ClientSession() as session:
+            css_tasks = []
+            for link in link_tags:
+                css_url = link.get('href')
+                if css_url:
+                    css_tasks.append(fetch_css(session, css_url, url))
+
+            # Wait for all CSS files to be fetched asynchronously
+            css_contents = await asyncio.gather(*css_tasks)
+
+            # Extract fonts from each fetched CSS content
+            for css_content in css_contents:
+                if css_content:
+                    matches = font_pattern.findall(css_content)
+                    for match in matches:
+                        fonts.update([font.strip() for font in match.split(',')])
 
         # Clean and validate fonts
         cleaned_fonts = set()
@@ -76,13 +88,13 @@ def extract_fonts(url):
             if cleaned_font and not re.search(r'[{}:@]', cleaned_font):  # Skip CSS rules and invalid entries
                 cleaned_fonts.add(cleaned_font)
 
+        # Close the browser
+        await browser.close()
+
         # Return the sorted list of cleaned fonts
         return sorted(cleaned_fonts)
 
-    finally:
-        driver.quit()
-
-# # Example usage:
+# Example usage:
 # url = 'https://www.a2dpcfactory.com/'  # Replace with the target URL
-# fonts = extract_fonts(url)
+# fonts = asyncio.run(extract_fonts(url))
 # print(fonts)
