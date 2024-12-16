@@ -8,9 +8,9 @@ from services.favicon_utils import extract_favicon_url
 from dotenv import load_dotenv
 import os
 
-load_dotenv()
+# load_dotenv()
 
-api_key = os.getenv("OPENAI_API_KEY")
+# api_key = os.getenv("OPENAI_API_KEY")
 
 async def generate_brand_json(url):
     """
