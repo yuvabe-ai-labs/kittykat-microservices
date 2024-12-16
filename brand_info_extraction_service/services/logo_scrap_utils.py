@@ -1,6 +1,6 @@
-import logging
 from playwright.async_api import async_playwright
 from bs4 import BeautifulSoup
+import logging
 import asyncio
 
 # Set up logging
@@ -33,17 +33,12 @@ async def extract_logos(url):
         await page.wait_for_load_state("domcontentloaded")
         logger.debug("Page loaded successfully.")
 
-        # Get the page content
-        html_content = await page.content()
-
-        # Parse with BeautifulSoup
-        soup = BeautifulSoup(html_content, 'html.parser')
-
         logos = set()  # Use a set to store unique logo URLs
-        logger.info("Searching for logos in the page...")
 
         # Method 1: Directly find logo using alt text
-        logo_tags = soup.find_all('img', alt=lambda x: x and 'logo' in x.lower())  # Filters alt text containing 'logo'
+        html_content = await page.content()
+        soup = BeautifulSoup(html_content, 'html.parser')
+        logo_tags = soup.find_all('img', alt=lambda x: x and 'logo' in x.lower())
         if logo_tags:
             logger.info(f"Found {len(logo_tags)} logos using 'alt' text.")
             for logo in logo_tags:
@@ -53,14 +48,43 @@ async def extract_logos(url):
                     logger.debug(f"Added logo URL: {logo_src}")
 
         # Method 2: Handle nested <div> structures dynamically
-        header_section = soup.find('div', class_=lambda x: x and 'headerSection' in x)  # Adjust based on the class in your HTML
+        header_section = soup.find('div', class_=lambda x: x and 'headerSection' in x)
         if header_section:
-            logo_container = header_section.find('div', class_=lambda x: x and 'imageDiv' in x)  # Adjust further as needed
+            logo_container = header_section.find('div', class_=lambda x: x and 'imageDiv' in x)
             if logo_container:
-                nested_logo_img = logo_container.find('img')  # Target the <img> tag
+                nested_logo_img = logo_container.find('img')
                 if nested_logo_img and nested_logo_img.get('src'):
                     logos.add(nested_logo_img.get('src'))
                     logger.debug(f"Added nested logo URL: {nested_logo_img.get('src')}")
+
+        # Method 3: Dynamically rendered elements
+        try:
+            logger.info("Waiting for dynamically rendered logos...")
+            dynamic_logo_element = await page.wait_for_selector('img', timeout=10000)  # Waits for any <img> element
+            if dynamic_logo_element:
+                dynamic_logo_src = await dynamic_logo_element.get_attribute('src')
+                if dynamic_logo_src:
+                    logos.add(dynamic_logo_src)
+                    logger.debug(f"Added dynamically rendered logo URL: {dynamic_logo_src}")
+        except Exception as e:
+            logger.warning(f"No dynamically rendered logos found: {e}")
+
+        try:
+            logger.info("Searching for SVG logos...")
+            svg_elements = soup.find_all('svg', class_=lambda x: x and 'icon' in x.lower())
+            if svg_elements:
+                logger.info(f"Found {len(svg_elements)} SVG logos.")
+                for idx, svg in enumerate(svg_elements):
+                    svg_content = str(svg)
+                    logos.add(f"SVG_LOGO_{idx}")  # Placeholder for SVG logos
+                    logger.debug(f"Extracted SVG content (truncated): {svg_content[:200]}...")
+
+                    # (Optional) Save SVG content to a file
+                    with open(f"logo_{idx}.svg", "w", encoding="utf-8") as file:
+                        file.write(svg_content)
+                        logger.debug(f"Saved SVG logo as 'logo_{idx}.svg'.")
+        except Exception as e:
+                logger.warning(f"Error in Method 4 (SVG elements): {e}")
 
         # Close the browser
         await browser.close()
