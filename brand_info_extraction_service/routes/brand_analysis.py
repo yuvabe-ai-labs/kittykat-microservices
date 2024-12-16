@@ -55,7 +55,7 @@ async def get_analysis(request: BrandUrlRequest):
         )
 
     try:
-        brand_details = generate_brand_json( url)
+        brand_details = await generate_brand_json( url)
 
         # Extract JSON-like content
         start_index = brand_details.find("{")
