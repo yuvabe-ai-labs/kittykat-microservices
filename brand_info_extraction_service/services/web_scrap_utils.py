@@ -154,7 +154,7 @@ async def extract_brand_details(url):
 
         # Method 3: Look for images inside common header/navigation containers
         logger.debug("Searching in header/navigation containers...")
-        header_classes = ['header', 'navigation', 'nav', 'logo', 'w-nav', 'brand']
+        header_classes = [ 'logo','navigation','wrapper','header-logo','header__heading']
         for header_class in header_classes:
             containers = soup.find_all('div', class_=lambda x: x and header_class in x.lower())
             for container in containers:
@@ -163,13 +163,30 @@ async def extract_brand_details(url):
                     logos.add(img_tag.get('src'))
                     logger.debug(f"Found logo in container '{header_class}': {img_tag.get('src')}")
 
-        # Method 4: Search for images inside <a> tags (common for logos)
+        # Method 4: Search for images wrapped in <a> tags (commonly for logos)
         logger.debug("Searching for images wrapped in <a> tags...")
         for link in soup.find_all('a'):
             img_tag = link.find('img')
             if img_tag and img_tag.get('src'):
-                logos.add(img_tag.get('src'))
-                logger.debug(f"Found logo inside <a>: {img_tag.get('src')}")
+                # Check if 'logo', 'brand', or 'icon' is in the alt or title of the image
+                alt_text = img_tag.get('alt', '').lower()
+                title_text = img_tag.get('title', '').lower()
+                if 'logo' in alt_text or 'logo' in title_text or 'brand' in alt_text or 'icon' in alt_text:
+                    logos.add(img_tag.get('src'))
+                    logger.debug(f"Found logo inside <a>: {img_tag.get('src')}")
+
+
+        # Method 4(i): Search for images wrapped in <a> tags (commonly for logos)
+        logger.debug("Searching for images wrapped in <h1> tags...")
+        for link in soup.find_all('h1'):
+            img_tag = link.find('img')
+            if img_tag and img_tag.get('src'):
+                # Check if 'logo', 'brand', or 'icon' is in the alt or title of the image
+                alt_text = img_tag.get('alt', '').lower()
+                title_text = img_tag.get('title', '').lower()
+                if 'logo' in alt_text or 'logo' in title_text or 'brand' in alt_text or 'icon' in alt_text:
+                    logos.add(img_tag.get('src'))
+                    logger.debug(f"Found logo inside <a>: {img_tag.get('src')}")
 
         # Method 5: Dynamically rendered images (multiple <img> tags)
         logger.debug("Checking for dynamically rendered images...")
@@ -178,8 +195,12 @@ async def extract_brand_details(url):
             for img_element in dynamic_images:
                 src = await img_element.get_attribute('src')
                 if src:
-                    logos.add(src)
-                    logger.debug(f"Found dynamically rendered image: {src}")
+                    # Fetch alt or title attributes for additional logo validation
+                    alt_text = await img_element.get_attribute('alt')
+                    title_text = await img_element.get_attribute('title')
+                    if 'logo' in (alt_text or '').lower() or 'logo' in (title_text or '').lower() or 'brand' in (alt_text or '').lower() or 'icon' in (alt_text or '').lower():
+                        logos.add(src)
+                        logger.debug(f"Found dynamically rendered logo: {src}")
         except Exception as e:
             logger.warning(f"Error fetching dynamically rendered logos: {e}")
 
