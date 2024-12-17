@@ -39,20 +39,20 @@ async def generate_brand_json(url):
     logger.info("Web scraping completed successfully, preparing OpenAI prompt...")
 
     # Check if the brand_logo list has more than 3 URLs
-    if len(brand_logo) > 6:
+    if brand_logo :
         brand_logo_filtered = [
             f'"{logo}"' for logo in brand_logo if 'logo' in logo.lower() or 'brand' in logo.lower() or 'icon' in logo.lower()
         ]
+        brand_logo_filtered.append(brand_favicons)
     else:
         # Include all URLs in the list if there are 3 or fewer
-        brand_logo_filtered = [
-            f'"{logo}"' for logo in brand_logo
-    ]
+        brand_logo_filtered = brand_favicons
+        logger.info("Logos are not found, hence favicon replaces logo url")
         
-    if len(brand_logo_filtered) > 5:
-        brand_logo_filtered = [logo for logo in brand_logo_filtered if 'main' in logo.lower() and 'logo' in logo.lower()]
+    if len(brand_logo_filtered) > 3 :
+        brand_logo_filtered = [logo for logo in brand_logo_filtered if 'main' in logo.lower() and 'logo' in logo.lower() or 'favicon' in logo.lower()]
 
-
+    
 
 
     prompt = f"""
@@ -64,7 +64,7 @@ async def generate_brand_json(url):
 
         "brand_colors": [{', '.join([f'"{color}"' for color in brand_colors])}],  # Ensure colors are in a list format
         "brand_fonts": [{', '.join([f'"{font}"' for font in brand_fonts])}],  # Ensure fonts are in a list format and only include valid fonts,ignore the count of the fonts
-        "brand_logo": [{', '.join(brand_logo_filtered)}],   # Validate and include only distinct URLs add https// if not found for company logos.Ignore logos other than comapny logo for eg. instagram logo or other social media logos are to be ignored,ignore unnecessary widgests logos like shipping,reloding,sample,rewards etc.  Ignore the width in the url
+        "brand_logo": [{', '.join(brand_logo_filtered)}],   # Validate and include only distinct URLs add https// if not found for company logos.Ignore logos other than comapny if you found the url is not related to company main logo ignore it eg .marie-claire-magazine-logo,and ignore also logo for eg. instagram logo or other social media logos are to be ignored except facivon,ignore unnecessary widgests logos like shipping,reloding,sample,rewards,magazine etc.  Ignore the width in the url
         "favicon" : [{brand_favicons}]  # put the favicon into the list
         }}
         """
