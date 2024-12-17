@@ -46,7 +46,7 @@ async def generate_brand_json(url):
         "brand_description": "{brand_description}",  # Inferred proper description -> {brand_description}, summarize it for a more understandable description
         "brand_colors": [{', '.join([f'"{color}"' for color in brand_colors])}],  # Ensure colors are in a list format
         "brand_fonts": [{', '.join([f'"{font}"' for font in brand_fonts])}],  # Ensure fonts are in a list format and only include valid fonts,ignore the count of the fonts
-        "brand_logo": [{', '.join([f'"{logo}"' for logo in brand_logo])}]  # Validate and include only perfect URLs for the company logo(s) rather than the path, avoiding non-standard or duplicate logos
+        "brand_logo": [{', '.join([f'"{logo}"' for logo in brand_logo if 'logo' in logo.lower() or 'brand' in logo.lower() or 'icon' in logo.lower()])} ],  # Validate and include only distinct URLs for company logos. Ignore non-logo or placeholder images.
         "favicon" : [{brand_favicons}]  # put the favicon into the list
         }}
         """

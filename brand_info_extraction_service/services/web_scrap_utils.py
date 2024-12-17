@@ -152,17 +152,37 @@ async def extract_brand_details(url):
                     logos.add(nested_logo_img.get('src'))
                     logger.debug(f"Added nested logo URL: {nested_logo_img.get('src')}")
 
-        # Method 3: Dynamically rendered elements
+        # Method 3: Look for images inside common header/navigation containers
+        logger.debug("Searching in header/navigation containers...")
+        header_classes = ['header', 'navigation', 'nav', 'logo', 'w-nav', 'brand']
+        for header_class in header_classes:
+            containers = soup.find_all('div', class_=lambda x: x and header_class in x.lower())
+            for container in containers:
+                img_tag = container.find('img')
+                if img_tag and img_tag.get('src'):
+                    logos.add(img_tag.get('src'))
+                    logger.debug(f"Found logo in container '{header_class}': {img_tag.get('src')}")
+
+        # Method 4: Search for images inside <a> tags (common for logos)
+        logger.debug("Searching for images wrapped in <a> tags...")
+        for link in soup.find_all('a'):
+            img_tag = link.find('img')
+            if img_tag and img_tag.get('src'):
+                logos.add(img_tag.get('src'))
+                logger.debug(f"Found logo inside <a>: {img_tag.get('src')}")
+
+        # Method 5: Dynamically rendered images (multiple <img> tags)
+        logger.debug("Checking for dynamically rendered images...")
         try:
-            logger.info("Waiting for dynamically rendered logos...")
-            dynamic_logo_element = await page.wait_for_selector('img', timeout=20000)  # Waits for any <img> element
-            if dynamic_logo_element:
-                dynamic_logo_src = await dynamic_logo_element.get_attribute('src')
-                if dynamic_logo_src:
-                    logos.add(dynamic_logo_src)
-                    logger.debug(f"Added dynamically rendered logo URL: {dynamic_logo_src}")
+            dynamic_images = await page.query_selector_all('img')
+            for img_element in dynamic_images:
+                src = await img_element.get_attribute('src')
+                if src:
+                    logos.add(src)
+                    logger.debug(f"Found dynamically rendered image: {src}")
         except Exception as e:
-            logger.warning(f"No dynamically rendered logos found: {e}")
+            logger.warning(f"Error fetching dynamically rendered logos: {e}")
+
 
         logger.info("Logo extraction completed successfully")
         

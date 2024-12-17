@@ -61,6 +61,11 @@ async def get_analysis(request: BrandUrlRequest):
         # Parse JSON-like response
         try:
             brand_data = json.loads(brand_details)
+                    # Check if 'brand_logo' is empty and update it with 'favicon' URL
+            if not brand_data['brand_logo']:
+                brand_data['brand_logo'] = brand_data['favicon']
+                logging.info("'brand_logo' is empty. Updating it with 'favicon' URL.")
+                
         except json.JSONDecodeError as e:
             logger.error(f"{request_id}, Error decoding brand details JSON: {str(e)}, {response_id}")
             raise HTTPException(status_code=500, detail="Failed to parse brand details JSON")
