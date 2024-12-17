@@ -38,15 +38,33 @@ async def generate_brand_json(url):
 
     logger.info("Web scraping completed successfully, preparing OpenAI prompt...")
 
+    # Check if the brand_logo list has more than 3 URLs
+    if len(brand_logo) > 6:
+        brand_logo_filtered = [
+            f'"{logo}"' for logo in brand_logo if 'logo' in logo.lower() or 'brand' in logo.lower() or 'icon' in logo.lower()
+        ]
+    else:
+        # Include all URLs in the list if there are 3 or fewer
+        brand_logo_filtered = [
+            f'"{logo}"' for logo in brand_logo
+    ]
+        
+    if len(brand_logo_filtered) > 5:
+        brand_logo_filtered = [logo for logo in brand_logo_filtered if 'main' in logo.lower() and 'logo' in logo.lower()]
+
+
+
+
     prompt = f"""
         Based on the following brand details, generate a JSON object with the given structure: 
         {{
-        "brand_name": "{brand_name}",  # Extract the brand name from the title and remove any unrelated or descriptive parts. The brand name is usually the most distinct and recognizable term. Please provide just the brand name as the output.
+        "brand_name": "{brand_name}",  # Extract the brand name from the title and remove any unrelated or descriptive parts. The brand name is usually the most distinct and recognizable term. Please provide just the brand name as the output.Ignore ® if found
         "brand_category": ["",""],  # Inferred categories based on the brand details -> {brand_description},..Inference the categorize based on the description for example Technology,clothing,pc building and put into a list 
-        "brand_description": "{brand_description}",  # Inferred proper description -> {brand_description}, summarize it for a more understandable description
+        "brand_description": "{brand_description}",  # Inferred proper description -> {brand_description}, summarize it for a more understandable description and ignore the pronouns and replace the company name
+
         "brand_colors": [{', '.join([f'"{color}"' for color in brand_colors])}],  # Ensure colors are in a list format
         "brand_fonts": [{', '.join([f'"{font}"' for font in brand_fonts])}],  # Ensure fonts are in a list format and only include valid fonts,ignore the count of the fonts
-        "brand_logo": [{', '.join([f'"{logo}"' for logo in brand_logo if 'logo' in logo.lower() or 'brand' in logo.lower() or 'icon' in logo.lower()])} ],  # Validate and include only distinct URLs for company logos. Ignore non-logo or placeholder images.
+        "brand_logo": [{', '.join(brand_logo_filtered)}],   # Validate and include only distinct URLs add https// if not found for company logos.Ignore logos other than comapny logo for eg. instagram logo or other social media logos are to be ignored,ignore unnecessary widgests logos like shipping,reloding,sample,rewards etc.  Ignore the width in the url
         "favicon" : [{brand_favicons}]  # put the favicon into the list
         }}
         """
@@ -62,7 +80,7 @@ async def generate_brand_json(url):
         client = OpenAI(api_key=api_key)
         response = client.chat.completions.create(
             model="gpt-4",
-            messages=[{"role": "user", "content": prompt}, {"role": "system", "content": "HTML Content Extractor"}],
+            messages=[{"role": "user", "content": prompt}, {"role": "system", "content": "JSON constructor and validator"}],
             temperature=0.7
         )
 
