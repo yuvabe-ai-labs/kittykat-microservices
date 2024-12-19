@@ -315,6 +315,7 @@ async def apply_watermark_from_urls(
                 # Restore the decompression bomb limit
                 Image.MAX_IMAGE_PIXELS = SAFE_PIXEL_LIMIT
 
+        logger.info(watermarked_images)
         logger.info(f"Successfully processed {len(watermarked_images)} images.")
         return JSONResponse(content={"images": watermarked_images})
 
