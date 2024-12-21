@@ -20,7 +20,8 @@ async def handle_text_search(search_query: str):
     try:
         # Generate the embedding for the input text query
         embedding1 = await send_text_to_embed(search_query)
-        return {"embedding": embedding1}  # Return the text embedding
+        return embedding1  # Return the text embedding
+
 
     except Exception as e:
         # Raise an HTTP exception with the error message

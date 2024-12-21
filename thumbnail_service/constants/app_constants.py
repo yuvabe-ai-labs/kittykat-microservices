@@ -1,0 +1,1 @@
+MAX_IMAGE_SIZE = (720, 720)

@@ -124,9 +124,6 @@ def upload_to_gcs(
         if image.mode != "RGB":
             image = image.convert("RGB")
 
-        # Log image size before saving (for debugging purposes)
-        print(f"Image size: {image.size}, mode: {image.mode}")
-
         # Resize image if it exceeds certain dimensions (e.g., 1500x1500)
         image = resize_image(image)
 
@@ -135,11 +132,20 @@ def upload_to_gcs(
         image.save(img_bytes, format="JPEG", quality=quality)
         img_bytes.seek(0)  # Ensure we're at the beginning of the BytesIO stream
 
-        # Upload the compressed image to GCS
+        # Define the blob (file path in GCS)
         compressed_blob = bucket.blob(f"{folder_path}/{file_name}")
+
+        # Ensure the file is overwritten by deleting it if it exists
+        if compressed_blob.exists():
+            compressed_blob.delete()
+
+        # Upload the compressed image to GCS
         compressed_blob.upload_from_file(img_bytes, content_type="image/webp")
+        compressed_blob.cache_control = "no-cache, no-store, must-revalidate"
+        compressed_blob.update()
 
         # Return the public URL of the uploaded compressed image
+        print("com", compressed_blob.public_url)
         return compressed_blob.public_url
 
     except GoogleCloudError as e:
