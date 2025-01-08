@@ -7,7 +7,7 @@ services=(
     "image_embedding_service"
     "thumbnail_service"
     "brand_info_extraction_service"
-    "feat_pinterest_api"
+    "pinterest_api_service"
 )
 
 # Accepts changes from the previous step
