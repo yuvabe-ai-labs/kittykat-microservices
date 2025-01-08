@@ -322,7 +322,7 @@ async def delete_board(
             status_code=500,
             detail=f"An unexpected error occurred: {str(e)}"
         )
-
+    
 @router.get("/boards/{board_id}/pins")
 async def list_pins_on_board(
     board_id: str,
