@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends,Query
 import httpx
 from dotenv import load_dotenv
 import os
@@ -321,4 +321,73 @@ async def delete_board(
         raise HTTPException(
             status_code=500,
             detail=f"An unexpected error occurred: {str(e)}"
+        )
+
+@router.get("/boards/{board_id}/pins")
+async def list_pins_on_board(
+    board_id: str,
+    bookmark: Optional[str] = None,
+    page_size: Optional[int] = 25,
+    creative_types: Optional[List[str]] = Query(None),  # Use Query to ensure it's treated as query parameter
+    ad_account_id: Optional[str] = None,
+    pin_metrics: Optional[bool] = False,
+):
+    """
+    Fetch all Pins on a specified Pinterest board.
+
+    Args:
+        board_id (str): Unique identifier of the board.
+        bookmark (Optional[str]): Cursor for pagination.
+        page_size (Optional[int]): Maximum number of items to include in the response (default: 25).
+        creative_types (Optional[List[str]]): Filter Pins by creative types (e.g., REGULAR, VIDEO).
+        ad_account_id (Optional[str]): ID of the ad account for business access.
+        pin_metrics (Optional[bool]): Whether to return 90d and lifetime Pin metrics.
+
+    Returns:
+        JSON response with the list of Pins if successful.
+
+    Raises:
+        HTTPException: If an error occurs during the request.
+    """
+    url = f"{BASE_URL}/{board_id}/pins"
+
+    # Construct query parameters
+    params = {
+        "bookmark": bookmark,
+        "page_size": page_size,
+        "creative_types": ",".join(creative_types) if creative_types else None,
+        "ad_account_id": ad_account_id,
+        "pin_metrics": str(pin_metrics).lower(),
+    }
+    params = {key: value for key, value in params.items() if value is not None}
+
+    headers = {
+        "Authorization": f"Bearer {PINTEREST_API_TOKEN}",
+    }
+
+    logger.info(f"Fetching Pins for board ID: {board_id} with params: {params}")
+
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(url, headers=headers, params=params)
+
+        if response.status_code == 200:
+            logger.info("Successfully fetched Pins for board.")
+            return response.json()
+        elif response.status_code == 404:
+            logger.warning("Board not found.")
+            raise HTTPException(status_code=404, detail="Board not found.")
+        else:
+            logger.error(
+                f"Error fetching Pins for board. Status code: {response.status_code}, Response: {response.text}"
+            )
+            raise HTTPException(
+                status_code=response.status_code,
+                detail="Unexpected error occurred while fetching Pins.",
+            )
+    except Exception as e:
+        logger.exception("An unexpected error occurred while fetching Pins.")
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected error occurred: {str(e)}",
         )

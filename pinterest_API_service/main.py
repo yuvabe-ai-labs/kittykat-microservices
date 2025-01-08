@@ -6,6 +6,7 @@ from routes.user_accounts import router as user_accounts_router
 from routes.ad_accounts import router as ad_accounts_router
 from routes.campaigns import router as campaigns_router
 from routes.feeds import router as feeds_router
+from routes.search import router as search_router
 
 app = FastAPI()
 
@@ -30,4 +31,6 @@ app.include_router(campaigns_router,tags=["Campaigns"])
 # Include the Feeds router
 app.include_router(feeds_router,tags=["Feeds"])
 
+# Include the Search router
+app.include_router(search_router,tags=["Search"])
 
