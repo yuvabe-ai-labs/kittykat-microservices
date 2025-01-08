@@ -12,7 +12,7 @@ on:
       - "image_embedding_service/**"
       - "thumbnail_service/**"
       - "brand_info_extraction_service/**"
-      - "feat_pinterest_api/**"
+      - "pinterest_api_service/**"
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
