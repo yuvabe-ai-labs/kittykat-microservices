@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from routes.boards import router as boards_router
 from routes.pins import router as pins_router
 from routes.media import router as media_router
@@ -9,6 +10,15 @@ from routes.feeds import router as feeds_router
 from routes.search import router as search_router
 
 app = FastAPI()
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Replace "*" with specific domains if needed
+    allow_credentials=True,
+    allow_methods=["*"],  # Specify allowed methods or use "*" for all
+    allow_headers=["*"],  # Specify allowed headers or use "*" for all
+)
 
 # Include the Boards router
 app.include_router(boards_router, tags=["Boards"])
@@ -26,11 +36,10 @@ app.include_router(user_accounts_router, tags=["User Accounts"])
 app.include_router(ad_accounts_router, tags=["AD Accounts"])
 
 # Include the Campaigns router
-app.include_router(campaigns_router,tags=["Campaigns"])
+app.include_router(campaigns_router, tags=["Campaigns"])
 
 # Include the Feeds router
-app.include_router(feeds_router,tags=["Feeds"])
+app.include_router(feeds_router, tags=["Feeds"])
 
 # Include the Search router
-app.include_router(search_router,tags=["Search"])
-
+app.include_router(search_router, tags=["Search"])
