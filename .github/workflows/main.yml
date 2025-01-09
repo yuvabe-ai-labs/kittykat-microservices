@@ -12,6 +12,7 @@ on:
       - "image_embedding_service/**"
       - "thumbnail_service/**"
       - "brand_info_extraction_service/**"
+      - "pinterest_api_service/**"
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -89,7 +90,7 @@ jobs:
             echo "Error: MATRIX_PATH is empty. Exiting."
             exit 1
           fi
-          
+
           FOLDER=$(basename $MATRIX_PATH)
           SERVICE_NAME=platform-$FOLDER-$STAGE_TYPE
           SERVICE_NAME=${SERVICE_NAME//_/-}
