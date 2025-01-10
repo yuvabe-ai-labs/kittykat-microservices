@@ -13,6 +13,6 @@ env/
 
 
 # Ignore other development and IDE files
+.idea/
 *.DS_Store
 *.vscode/
-.idea/
