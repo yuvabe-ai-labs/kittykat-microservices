@@ -8,7 +8,8 @@ services=(
     "thumbnail_service"
     "brand_info_extraction_service"
     "pinterest_api_service",
-    "openai_wrapper_service"
+    "openai_wrapper_service",
+    image_generation_service
 )
 
 # Accepts changes from the previous step
