@@ -48,7 +48,7 @@ jobs:
         id: set-matrix
         run: |
           matrix=$(.github/scripts/extract-directory.sh ${{ steps.getfile.outputs.files }})
-          echo "::set-output name=matrix::$matrix"
+          echo "matrix=$matrix" >> $GITHUB_OUTPUT
 
   debug-matrix:
     needs: update-matrix
@@ -117,18 +117,16 @@ jobs:
                         --port 8000 \
                         --timeout 1200s"
 
-          gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common
-
           # Deploy with different environment variables based on the service
           if [[ "${{ matrix.path }}" == *"brand_info_extraction_service"* || "${{ matrix.path }}" == *"openai_wrapper_service"* ]]; then
             echo "Deploying with OPENAI_API_KEY"
-            gcloud run deploy ${{ env.SERVICE_NAME }} --update-env-vars OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }} $deploy_common
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           elif [[ "${{ matrix.path }}" == *"pinterest_api_service"* ]]; then
             echo "Deploying pinterest_api_service with PINTEREST_API_TOKEN"
-            gcloud run deploy ${{ env.SERVICE_NAME }} --update-env-vars PINTEREST_API_TOKEN=${{ secrets.PINTEREST_API_TOKEN }} $deploy_common
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars PINTEREST_API_TOKEN=${{ secrets.PINTEREST_API_TOKEN }}
           elif [[ "${{ matrix.path }}" == *"image_generation_service"* ]]; then
             echo "Deploying image_generation_service with REPLICATE_API_KEY"
-            gcloud run deploy ${{ env.SERVICE_NAME }} --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }} $deploy_common
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }}
           else
             echo "Deploying ${{ env.SERVICE_NAME }} without API keys"
             gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common
