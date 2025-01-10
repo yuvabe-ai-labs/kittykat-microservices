@@ -1,3 +1,2 @@
-openai
 fastapi[standard]
 replicate
