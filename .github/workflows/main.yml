@@ -48,7 +48,7 @@ jobs:
         id: set-matrix
         run: |
           matrix=$(.github/scripts/extract-directory.sh ${{ steps.getfile.outputs.files }})
-          echo "matrix=$matrix" >> $GITHUB_OUTPUT
+          echo "::set-output name=matrix::$matrix"
 
   debug-matrix:
     needs: update-matrix
