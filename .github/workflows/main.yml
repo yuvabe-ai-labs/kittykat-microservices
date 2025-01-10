@@ -14,6 +14,7 @@ on:
       - "brand_info_extraction_service/**"
       - "pinterest_api_service/**"
       - "openai_wrapper_service/**"
+      - "image_generation_service/**"
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -126,6 +127,9 @@ jobs:
           elif [[ "${{ matrix.path }}" == *"pinterest_api_service"* ]]; then
             echo "Deploying pinterest_api_service with PINTEREST_API_TOKEN"
             gcloud run deploy ${{ env.SERVICE_NAME }} --update-env-vars PINTEREST_API_TOKEN=${{ secrets.PINTEREST_API_TOKEN }} ${*deploy_common}
+          elif [[ "${{ matrix.path }}" == *"image_generation_service"* ]]; then
+            echo "Deploying image_generation_service with REPLICATE_API_KEY"
+            gcloud run deploy ${{ env.SERVICE_NAME }} --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }} ${*deploy_common}
           else
             echo "Deploying ${{ env.SERVICE_NAME }} without API keys"
             gcloud run deploy ${{ env.SERVICE_NAME }} ${*deploy_common}
