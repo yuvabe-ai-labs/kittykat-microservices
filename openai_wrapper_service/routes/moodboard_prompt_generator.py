@@ -79,7 +79,7 @@ async def generate_moodboard_prompts(request: MoodboardPromptsRequest):
 
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
-        return GeneralResponse(
+        return GeneralResponse(#/
             status_code=500,
             data=None,
             message=f"An unexpected error occurred: {str(e)}",
