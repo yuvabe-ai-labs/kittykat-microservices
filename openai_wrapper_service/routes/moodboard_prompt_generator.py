@@ -6,7 +6,7 @@ from models.moodboard_prompt_generator import (
 )
 from models.global_models import GeneralResponse
 from constants.assistants import MOODBOARD_PROMPT_GENERATOR_ASSISTANT_ID
-from services.openai import submit_message, get_response
+from services.openai import get_response_from_assistant, submit_message
 from config.logger import logger
 
 router = APIRouter()
@@ -50,7 +50,9 @@ async def generate_moodboard_prompts(request: MoodboardPromptsRequest):
         logger.info(
             f"Waiting for OpenAI response. Thread ID: {thread_id}, Run ID: {run_id}"
         )
-        data = await get_response(thread_id, run_id)
+        data = await get_response_from_assistant(
+            thread_id, run_id, response_key="image_prompts"
+        )
 
         # Check if the response contains valid data
         if not data:
@@ -79,7 +81,7 @@ async def generate_moodboard_prompts(request: MoodboardPromptsRequest):
 
     except Exception as e:
         logger.error(f"An unexpected error occurred: {str(e)}")
-        return GeneralResponse(#/
+        return GeneralResponse(  # /
             status_code=500,
             data=None,
             message=f"An unexpected error occurred: {str(e)}",
