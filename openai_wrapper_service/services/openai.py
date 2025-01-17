@@ -41,21 +41,25 @@ async def submit_message(data, assistant_id):
         return None
 
 
-async def get_response(thread_id, run_id, max_retries=10, retry_delay=2):
+async def get_response_from_assistant(
+    thread_id, run_id, max_retries=10, retry_delay=2, response_key=None
+):
     """
-    Function to retrieve the response from the assistant after a delay if necessary.
+    General function to retrieve a response from the assistant after a delay if necessary.
 
     Args:
         thread_id (str): The ID of the thread.
         run_id (str): The ID of the assistant run.
         max_retries (int): Maximum number of retries before giving up.
         retry_delay (int): Delay between retries in seconds.
+        response_key (str): The key to retrieve specific data (e.g., "image_prompts" or "enhanced_prompt").
 
     Returns:
-        list: List of image prompts if successful, None if an error occurs.
+        str or list: The response data if successful, None if an error occurs.
     """
     retries = 0
     try:
+        # Retry logic for thread status
         while retries < max_retries:
             run = client.beta.threads.runs.retrieve(thread_id=thread_id, run_id=run_id)
             if run.status == "completed":
@@ -78,6 +82,7 @@ async def get_response(thread_id, run_id, max_retries=10, retry_delay=2):
             logger.error(f"Max retries reached for run {run_id}. Exiting.")
             return None
 
+        # Retrieving the messages from the assistant
         messages = client.beta.threads.messages.list(thread_id=thread_id)
         for message in messages.data:
             if message.role == "assistant":
@@ -87,9 +92,13 @@ async def get_response(thread_id, run_id, max_retries=10, retry_delay=2):
 
                 try:
                     value = message.content[0].text.value
-                    image_prompts = json.loads(value)
-                    image_prompts_list = image_prompts.get("image_prompts", [])
-                    return image_prompts_list
+                    response_data = json.loads(value)
+
+                    # Dynamically retrieve the required key (e.g., image_prompts or enhanced_prompt)
+                    if response_key:
+                        return response_data.get(response_key, None)
+                    else:
+                        return response_data
 
                 except json.JSONDecodeError as e:
                     logger.error(f"Error parsing assistant message content: {e}")
