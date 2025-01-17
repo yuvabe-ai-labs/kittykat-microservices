@@ -1,4 +1,4 @@
 fastapi[standard]
 replicate
-requests
 google-cloud-storage
+requests
