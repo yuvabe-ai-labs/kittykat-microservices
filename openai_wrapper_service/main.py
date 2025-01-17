@@ -15,8 +15,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(prompt_enhancer_router, tags=["Prompt Enhance"])
+
 
 app.include_router(
     moodboard_prompt_generator_router, tags=["MoodBoard Prompt Generation"]
 )
-app.include_router(prompt_enhancer_router, tags=["Prompt Enhance"])
