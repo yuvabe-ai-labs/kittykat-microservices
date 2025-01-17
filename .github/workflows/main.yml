@@ -109,58 +109,25 @@ jobs:
 
       - name: Deploy to Cloud Run
         run: |-
+          # Define common deploy configuration
+          deploy_common="--image ${{ env.IMAGE_URL }} \
+                        --platform managed \
+                        --region us-central1 \
+                        --allow-unauthenticated \
+                        --port 8000 \
+                        --timeout 1200s"
+
+          # Deploy with different environment variables based on the service
           if [[ "${{ matrix.path }}" == *"brand_info_extraction_service"* || "${{ matrix.path }}" == *"openai_wrapper_service"* ]]; then
-            echo "Deploying brand_info_extraction_service with OPENAI_API_KEY"
-            gcloud run deploy \
-              ${{ env.SERVICE_NAME }} \
-              --image ${{ env.IMAGE_URL }} \
-              --platform managed \
-              --region us-central1 \
-              --allow-unauthenticated \
-              --port 8000 \
-              --timeout 1200s \
-              --update-env-vars OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-          elif [[ "${{ matrix.path }}" == *"openai_wrapper_service"* ]]; then
-            echo "Deploying openai_wrapper_service with OPENAI_API_KEY"
-            gcloud run deploy \
-              ${{ env.SERVICE_NAME }} \
-              --image ${{ env.IMAGE_URL }} \
-              --platform managed \
-              --region us-central1 \
-              --allow-unauthenticated \
-              --port 8000 \
-              --timeout 1200s \
-              --update-env-vars OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            echo "Deploying with OPENAI_API_KEY"
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
           elif [[ "${{ matrix.path }}" == *"pinterest_api_service"* ]]; then
             echo "Deploying pinterest_api_service with PINTEREST_API_TOKEN"
-            gcloud run deploy \
-              ${{ env.SERVICE_NAME }} \
-              --image ${{ env.IMAGE_URL }} \
-              --platform managed \
-              --region us-central1 \
-              --allow-unauthenticated \
-              --port 8000 \
-              --timeout 1200s \
-              --update-env-vars PINTEREST_API_TOKEN=${{ secrets.PINTEREST_API_TOKEN }}
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars PINTEREST_API_TOKEN=${{ secrets.PINTEREST_API_TOKEN }}
           elif [[ "${{ matrix.path }}" == *"image_generation_service"* ]]; then
             echo "Deploying image_generation_service with REPLICATE_API_KEY"
-            gcloud run deploy \
-              ${{ env.SERVICE_NAME }} \
-              --image ${{ env.IMAGE_URL }} \
-              --platform managed \
-              --region us-central1 \
-              --allow-unauthenticated \
-              --port 8000 \
-              --timeout 1200s \
-              --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }}
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }}
           else
-            echo "Deploying ${{ env.SERVICE_NAME }} without OPENAI_API_KEY"
-            gcloud run deploy \
-              ${{ env.SERVICE_NAME }} \
-              --image ${{ env.IMAGE_URL }} \
-              --platform managed \
-              --region us-central1 \
-              --allow-unauthenticated \
-              --port 8000 \
-              --timeout 1200s
+            echo "Deploying ${{ env.SERVICE_NAME }} without API keys"
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common
           fi
