@@ -1,9 +1,13 @@
-from fastapi import APIRouter, HTTPException, Depends,Query
+import logging
+import uuid
+from fastapi import APIRouter, HTTPException, Depends, Path, Query
 import httpx
 from dotenv import load_dotenv
 import os
-from pydantic import ValidationError
-from typing import Optional, List
+from pydantic import BaseModel, Field, ValidationError
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timezone
+import requests
 from models.boards_schema import CreateBoardPayload, UpdateBoardPayload
 from constants.url_constants import BASE_URL
 
@@ -12,14 +16,20 @@ load_dotenv()
 
 router = APIRouter()
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 # Fetch the Pinterest API token from environment variables
 PINTEREST_API_TOKEN = os.getenv("PINTEREST_API_TOKEN")
 BASE_URL = f"{BASE_URL.rstrip('/')}/boards"
 
-# Logger setup
-import logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+
+class Asset(BaseModel):
+    asset_id: str
+    asset_source: str
+    asset_url: str
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    asset_info: Dict[str, Any]
+
 
 @router.get("/boards/get-pinterest-boards")
 async def get_pinterest_boards():
@@ -36,7 +46,7 @@ async def get_pinterest_boards():
 
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {PINTEREST_API_TOKEN}"
+        "Authorization": f"Bearer {PINTEREST_API_TOKEN}",
     }
 
     async with httpx.AsyncClient() as client:
@@ -47,12 +57,53 @@ async def get_pinterest_boards():
         return response.json()
     else:
         logger.error("Error fetching Pinterest boards: %s", response.text)
-        raise HTTPException(status_code=response.status_code, detail="Error fetching Pinterest boards")
+        raise HTTPException(
+            status_code=response.status_code, detail="Error fetching Pinterest boards"
+        )
+
+
+@router.get("/boards/{board_id}/assets", response_model=List[Asset])
+async def get_board_assets(board_id: str):
+    url = f"https://api.pinterest.com/v5/boards/{board_id}/pins"
+    headers = {
+        "Authorization": f"Bearer {PINTEREST_API_TOKEN}",
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+    }
+
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            pinterest_data = response.json()
+        except httpx.HTTPStatusError as e:
+            raise HTTPException(status_code=e.response.status_code, detail=str(e))
+
+    assets = []
+    for item in pinterest_data.get("items", []):
+        asset = Asset(
+            asset_id=item.get("id") or str(uuid.uuid4()),
+            asset_source="pinterest",
+            asset_url=item["media"]["images"]["1200x"]["url"],
+            created_at=datetime.fromisoformat(
+                item["created_at"].replace("Z", "+00:00")
+            ),
+            asset_info={
+                "title": item.get("title", ""),
+                "description": item.get("description", ""),
+                "dominant_color": item.get("dominant_color", ""),
+                "width": item["media"]["images"]["1200x"]["width"],
+                "height": item["media"]["images"]["1200x"]["height"],
+            },
+        )
+        assets.append(asset)
+
+    return assets
+
 
 @router.post("/boards/create-boards")
 async def create_board(
-    payload: CreateBoardPayload,
-    ad_account_id: Optional[str] = None
+    payload: CreateBoardPayload, ad_account_id: Optional[str] = None
 ):
     """
     Create a new Pinterest board.
@@ -83,7 +134,9 @@ async def create_board(
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=payload, params=params)
+            response = await client.post(
+                url, headers=headers, json=payload, params=params
+            )
 
         if response.status_code == 201:
             logger.info("Board created successfully.")
@@ -112,11 +165,42 @@ async def create_board(
             status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
 
+
+@router.get("/boards/get-board-id")
+async def get_board_id(username: str = Query(...), board_name: str = Query(...)):
+    """
+    Get the board ID using username and board name.
+
+    Args:
+        username (str): The username to search for.
+        board_name (str): The board name to search for.
+
+    Returns:
+        The board ID if found, or an error message if not found.
+    """
+    try:
+        # Fetch all boards
+        boards_response = await get_pinterest_boards()
+        boards = boards_response.get("items", [])
+
+        # Find the board ID
+        for board in boards:
+            if board["owner"]["username"] == username and board["name"] == board_name:
+                return {"board_id": board["id"]}
+
+        # If no match is found
+        raise HTTPException(status_code=404, detail="Board not found.")
+
+    except HTTPException as e:
+        logger.error("Error in get_board_id: %s", e.detail)
+        raise e
+    except Exception as e:
+        logger.error("Unexpected error: %s", str(e))
+        raise HTTPException(status_code=500, detail="Internal server error.")
+
+
 @router.get("/boards/{board_id}")
-async def get_board(
-    board_id: str,
-    ad_account_id: Optional[str] = None
-):
+async def get_board(board_id: str, ad_account_id: Optional[str] = None):
     """
     Get information about a Pinterest board by its ID.
 
@@ -171,9 +255,9 @@ async def get_board(
     except Exception as e:
         logger.exception("Unexpected error during board retrieval.")
         raise HTTPException(
-            status_code=500,
-            detail=f"An unexpected error occurred: {str(e)}"
+            status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
+
 
 @router.patch("/boards/{board_id}")
 async def update_board(
@@ -211,41 +295,37 @@ async def update_board(
 
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.patch(url, headers=headers, json=payload_dict, params=params)
+            response = await client.patch(
+                url, headers=headers, json=payload_dict, params=params
+            )
 
         if response.status_code == 200:
             logger.info("Board updated successfully.")
             return response.json()
         elif response.status_code == 400:
             logger.warning("Invalid board parameters.")
-            raise HTTPException(
-                status_code=400,
-                detail="Invalid board parameters."
-            )
+            raise HTTPException(status_code=400, detail="Invalid board parameters.")
         elif response.status_code == 403:
             logger.warning("Not authorized to update this board.")
             raise HTTPException(
-                status_code=403,
-                detail="Not authorized to update this board."
+                status_code=403, detail="Not authorized to update this board."
             )
         elif response.status_code == 404:
             logger.warning("Board not found.")
-            raise HTTPException(
-                status_code=404,
-                detail="Board not found."
-            )
+            raise HTTPException(status_code=404, detail="Board not found.")
         else:
             logger.error("Unexpected error occurred: %s", response.text)
             raise HTTPException(
                 status_code=response.status_code,
-                detail="Unexpected error occurred while updating the board."
+                detail="Unexpected error occurred while updating the board.",
             )
 
     except Exception as e:
         logger.exception("Unexpected error during board update.")
         raise HTTPException(
-            status_code=500,
-            detail=f"An unexpected error occurred: {str(e)}")
+            status_code=500, detail=f"An unexpected error occurred: {str(e)}"
+        )
+
 
 @router.delete("/boards/{board_id}")
 async def delete_board(
@@ -288,47 +368,44 @@ async def delete_board(
         elif response.status_code == 403:
             logger.warning("Not authorized to delete this board.")
             raise HTTPException(
-                status_code=403,
-                detail="Not authorized to delete this board."
+                status_code=403, detail="Not authorized to delete this board."
             )
         elif response.status_code == 404:
             logger.warning("Board not found.")
-            raise HTTPException(
-                status_code=404,
-                detail="Board not found."
-            )
+            raise HTTPException(status_code=404, detail="Board not found.")
         elif response.status_code == 409:
             logger.warning("Could not get exclusive access to delete the board.")
             raise HTTPException(
                 status_code=409,
-                detail="Could not get exclusive access to delete the board."
+                detail="Could not get exclusive access to delete the board.",
             )
         elif response.status_code == 429:
             logger.warning("Rate limit exceeded.")
             raise HTTPException(
-                status_code=429,
-                detail="Rate limit exceeded. Please try again later."
+                status_code=429, detail="Rate limit exceeded. Please try again later."
             )
         else:
             logger.error("Unexpected error occurred: %s", response.text)
             raise HTTPException(
                 status_code=response.status_code,
-                detail="Unexpected error occurred while deleting the board."
+                detail="Unexpected error occurred while deleting the board.",
             )
 
     except Exception as e:
         logger.exception("Unexpected error during board deletion.")
         raise HTTPException(
-            status_code=500,
-            detail=f"An unexpected error occurred: {str(e)}"
+            status_code=500, detail=f"An unexpected error occurred: {str(e)}"
         )
-    
+
+
 @router.get("/boards/{board_id}/pins")
 async def list_pins_on_board(
     board_id: str,
     bookmark: Optional[str] = None,
     page_size: Optional[int] = 25,
-    creative_types: Optional[List[str]] = Query(None),  # Use Query to ensure it's treated as query parameter
+    creative_types: Optional[List[str]] = Query(
+        None
+    ),  # Use Query to ensure it's treated as query parameter
     ad_account_id: Optional[str] = None,
     pin_metrics: Optional[bool] = False,
 ):
