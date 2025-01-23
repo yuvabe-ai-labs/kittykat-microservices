@@ -2,7 +2,6 @@ from fastapi import APIRouter
 from services.gcp import upload_to_gcp
 from models.global_models import GeneralResponse
 from models.replicate_models import ImageRequest
-from config.gcp import bucket
 from services.enhance_prompt import enhance_prompt
 from services.replicate import generate_prediction
 from config.logger import logger
@@ -47,7 +46,6 @@ async def generate_image(request: ImageRequest):
         if prediction.status == "succeeded":
             logger.info("Prediction succeeded, uploading to GCP...")
             gcp_url = upload_to_gcp(
-                bucket,
                 prediction.output[0],
                 f"generated-images/{prediction.id}.webp",
             )
