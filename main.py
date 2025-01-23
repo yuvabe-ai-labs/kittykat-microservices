@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes.replicate_image_generator import router as replicate_image_generator_router
 from routes.falai_image_generator import router as falai_image_generator_router
+from routes.fashnai_image_generator import router as fashn_image_generator_router
 
 app = FastAPI()
 
@@ -19,3 +20,4 @@ app.include_router(
 )
 
 app.include_router(falai_image_generator_router, tags=["FalAi Image Generator"])
+app.include_router(fashn_image_generator_router, tags=["Fashn Ai Image Generator"])
