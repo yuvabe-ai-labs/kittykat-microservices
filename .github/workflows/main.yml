@@ -114,7 +114,8 @@ jobs:
                         --region us-central1 \
                         --allow-unauthenticated \
                         --port 8000 \
-                        --timeout 1200s"
+                        --timeout 1200s \
+                        --update-env-vars STAGE_TYPE=${{ env.STAGE_TYPE }}"
 
           # Deploy with different environment variables based on the service
           if [[ "${{ matrix.path }}" == *"brand_info_extraction_service"* || "${{ matrix.path }}" == *"openai_wrapper_service"* ]]; then
