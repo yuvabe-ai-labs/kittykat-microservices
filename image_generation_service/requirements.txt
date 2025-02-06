@@ -1,6 +1,6 @@
 fastapi[standard]
 replicate
 requests
-google-cloud-storage
 aiohttp
+google-cloud-storage
 fal_client
