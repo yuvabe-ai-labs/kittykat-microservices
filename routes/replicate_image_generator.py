@@ -47,7 +47,7 @@ async def generate_image(request: ImageRequest):
             logger.info("Prediction succeeded, uploading to GCP...")
             gcp_url = upload_to_gcp(
                 prediction.output[0],
-                f"generated-images/{prediction.id}.webp",
+                f"replicate_outputs/{prediction.id}.webp",
             )
 
             response_data = {
