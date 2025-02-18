@@ -42,7 +42,7 @@ async def submit_message(data, assistant_id):
 
 
 async def get_response_from_assistant(
-    thread_id, run_id, max_retries=10, retry_delay=2, response_key=None
+    thread_id, run_id, max_retries=20, retry_delay=2, response_key=None
 ):
     """
     General function to retrieve a response from the assistant after a delay if necessary.
