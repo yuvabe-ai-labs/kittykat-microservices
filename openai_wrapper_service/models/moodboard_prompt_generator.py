@@ -7,6 +7,7 @@ class MoodboardPromptsRequest(BaseModel):
     no_of_prompts: int = 3
     brand_details: List[Dict[str, Any]]
     project_details: List[Dict[str, Any]]
+    visual_theme: Dict[str, Any]
 
     class Config:
         json_schema_extra = {
