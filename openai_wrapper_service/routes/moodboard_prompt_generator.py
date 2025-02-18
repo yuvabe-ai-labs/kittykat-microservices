@@ -36,6 +36,7 @@ async def generate_moodboard_prompts(request: MoodboardPromptsRequest):
             "no_of_prompts_required": request.no_of_prompts,
             "brand_details": request.brand_details,
             "project_details": request.project_details,
+            "visual_theme": request.visual_theme,
         }
 
         request_data_json = json.dumps(request_data)
