@@ -6,6 +6,7 @@ from models.replicate_models import ImageRequest
 from services.enhance_prompt import enhance_prompt
 from services.replicate import generate_prediction
 from config.logger import logger
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -57,6 +58,8 @@ async def generate_image(request: ImageRequest):
                 "asset_info": {
                     "model": request.model,
                     "prompt": request.prompt,
+                    "created_at": datetime.now(timezone.utc),
+                    "status": "sucesss",
                 },
             }
             if enhanced_prompt and request.prompt != enhanced_prompt:
