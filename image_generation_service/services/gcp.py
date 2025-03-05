@@ -32,9 +32,7 @@ def upload_to_gcp(source_url: str, destination_blob_name: str) -> str:
         )
 
         # Prefix the destination blob name with the bucket prefix
-        full_destination_blob_name = (
-            f"{bucket_prefix}/{stage_type}/{destination_blob_name}"
-        )
+        full_destination_blob_name = f"{bucket_prefix}/{destination_blob_name}"
 
         # Check if the blob already exists
         blob = bucket.blob(full_destination_blob_name)
