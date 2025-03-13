@@ -70,6 +70,29 @@ async def generate_image(request: ImageRequest):
                 data=response_data,
                 message="Image generation successful",
             )
+        if request.model == "black-forest-labs/flux-pro":
+            logger.info("Direct model detected, uploading to GCP...")
+            print("here", prediction_output.output)
+            gcp_url = upload_to_gcp(
+                prediction_output.output, f"replicate_outputs/{uuid.uuid4()}.webp"
+            )
+            response_data = {
+                "asset_url": gcp_url,
+                "asset_info": {
+                    "model": request.model,
+                    "prompt": request.prompt,
+                    "created_at": datetime.now(timezone.utc),
+                    "status": "sucesss",
+                },
+            }
+            if enhanced_prompt and request.prompt != enhanced_prompt:
+                response_data["asset_info"]["enhanced_prompt"] = enhanced_prompt
+
+            return GeneralResponse(
+                status_code=200,
+                data=response_data,
+                message="Image generation successful",
+            )
 
         # Handle prediction result for other models
         if prediction_output.status == "succeeded":
