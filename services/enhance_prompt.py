@@ -29,7 +29,7 @@ async def image_to_description(image_url: HttpUrl, user_prompt: str) -> str:
 
         async with aiohttp.ClientSession() as session:
             async with session.post(
-                "http://localhost:8001/openai/image-to-description",
+                "https://platform-openai-wrapper-service-dev-547175224231.us-central1.run.app/openai/image-to-description",
                 json={
                     "image_url": str(image_url),
                     "user_prompt": user_prompt,
