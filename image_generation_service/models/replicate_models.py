@@ -37,7 +37,7 @@ class WebhookEvent(str, Enum):
 
 
 class AutocaptionOptions(BaseModel):
-    enabled: bool = Field(True, description="Automatically caption images")
+    enabled: bool = Field(False, description="Automatically caption images")
     prefix: Optional[str] = Field(None, description="Text to prepend to captions")
     suffix: Optional[str] = Field(None, description="Text to routerend to captions")
 
@@ -59,7 +59,6 @@ class WandbConfig(BaseModel):
 
 
 class TrainingInput(BaseModel):
-
     destination: str = Field(
         ...,
         description="Model destination in format owner/name",
@@ -67,19 +66,18 @@ class TrainingInput(BaseModel):
     )
     model_owner: str = Field(..., description="Owner of the model to train")
     model_name: str = Field(..., description="Name of the model to train")
-    version_id: str = Field(..., description="Version ID of the model to train")
+    version_id: Optional[str] = Field(
+        None, description="Version ID of the model to train"
+    )  # Optional field with default None
 
     # Required training parameters
     input_images: HttpUrl = Field(
         ..., description="URL to zip file containing training data"
     )
-    trigger_word: str = Field("TOK", description="Trigger word for training")
-
     # Optional training parameters
     steps: int = Field(1000, ge=3, le=6000, description="Number of training steps")
     lora_rank: int = Field(16, ge=1, le=128, description="LoRA rank value")
 
-    # Optional HuggingFace integration
     hf_repo_id: Optional[str] = Field(None, description="HuggingFace repository ID")
     hf_token: Optional[SecretStr] = Field(None, description="HuggingFace token")
 
@@ -129,7 +127,6 @@ class TrainingInput(BaseModel):
         # Build inputs dictionary with all the training parameters
         input_dict = {
             "input_images": str(self.input_images),
-            "trigger_word": self.trigger_word,
             "steps": self.steps,
             "lora_rank": self.lora_rank,
             "learning_rate": self.learning_rate,
