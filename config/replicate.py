@@ -20,12 +20,12 @@ async def get_api_client():
             status_code=500, detail="REPLICATE_API_TOKEN not configured"
         )
 
-    client = httpx.AsyncClient(
+    replicate_client = httpx.AsyncClient(
         base_url=REPLICATE_API_BASE_URL,
         headers={"Authorization": f"Bearer {api_key}"},
         timeout=30.0,
     )
     try:
-        yield client
+        yield replicate_client
     finally:
-        await client.aclose()
+        await replicate_client.aclose()
