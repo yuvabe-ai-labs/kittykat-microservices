@@ -133,11 +133,7 @@ async def describe_image(
         )
 
     if trigger_word:
-        prompt_text += (
-            f" After describing {focus_entity}, ensure that the word '{trigger_word}' appears naturally in the response. "
-            f"Integrate it in a way that enhances clarity, making sure it follows the description of {focus_entity} "
-            f"without disrupting the natural flow of the explanation."
-        )
+        prompt_text += f"Make sure to include '{trigger_word}' after the everytime you mention the object in the image."
 
     response = await async_client.chat.completions.create(
         model=model,
