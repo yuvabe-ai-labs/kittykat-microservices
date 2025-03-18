@@ -1,0 +1,5 @@
+fastapi[standard]
+replicate
+requests
+aiohttp
+google-cloud-storage
