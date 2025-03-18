@@ -58,7 +58,10 @@ async def create_zip(image_data: ZipRequest):
 
                     # Generate and save description
                     description = await image_to_description(
-                        str(url), image_data.caption
+                        str(url),
+                        image_data.caption,
+                        image_data.focus_entity,
+                        image_data.trigger_word,
                     )
                     text_filename = f"image_{index:04d}.txt"
                     zip_file.writestr(text_filename, description.encode())
