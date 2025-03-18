@@ -82,3 +82,24 @@ class DeploymentResponse(BaseModel):
     max_instances: int
     autoscale: bool
     cloud: str
+
+
+class WebhookEventFilter(str, Enum):
+    START = "start"
+    OUTPUT = "output"
+    LOGS = "logs"
+    COMPLETED = "completed"
+
+
+class CreateModelPredictionRequest(BaseModel):
+    input: Dict[str, Any]
+    stream: Optional[bool] = None
+    webhook: Optional[str] = None
+    webhook_events_filter: Optional[List[WebhookEventFilter]] = None
+
+
+class ModelVersionResponse(BaseModel):
+    id: str
+    created_at: str
+    cog_version: str
+    openapi_schema: Dict[str, Any]
