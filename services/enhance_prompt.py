@@ -22,7 +22,9 @@ async def enhance_prompt(prompt: str) -> str:
         raise Exception(f"Failed to enhance prompt: {str(e)}")
 
 
-async def image_to_description(image_url: HttpUrl, user_prompt: str) -> str:
+async def image_to_description(
+    image_url: HttpUrl, user_prompt: str, focus_entitiy: str, trigger_word: str
+) -> str:
     """Enhance the given prompt using OpenAI service."""
     try:
         logger.info(f"Generating description for image: {image_url}")
@@ -33,7 +35,9 @@ async def image_to_description(image_url: HttpUrl, user_prompt: str) -> str:
                 json={
                     "image_url": str(image_url),
                     "user_prompt": user_prompt,
-                },  # Convert HttpUrl to str
+                    "focus_entity": focus_entitiy,
+                    "trigger_word": trigger_word,
+                },
             ) as response:
                 response_data = await response.json()
                 description = response_data.get("data", {}).get(
