@@ -226,8 +226,16 @@ class HardwareInfo(BaseModel):
 
 
 class ZipRequest(BaseModel):
-    folder_id: Optional[str] = Field(
-        default_factory=lambda: str(uuid.uuid4()), description="Unique ID"
+    image_urls: List[str] = Field(
+        ..., description="List of image URLs to include in the zip"
     )
-    image_urls: List[HttpUrl]
-    caption: Optional[str] = "Describe this image"
+    folder_id: Optional[str] = Field(
+        default_factory=lambda: str(uuid.uuid4()), description="Unique folder ID"
+    )
+    caption: str = Field(
+        "Describe this image", description="Caption instruction for image descriptions"
+    )
+    focus_entity: Optional[str] = Field(
+        None, description="Focus instruction for image descriptions"
+    )
+    trigger_word: Optional[str] = Field(None, description="Trigger word for LoRA")
