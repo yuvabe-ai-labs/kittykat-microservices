@@ -10,6 +10,7 @@ services=(
     "pinterest_api_service"
     "openai_wrapper_service"
     "image_generation_service"
+    "video_generation_service"
 )
 
 # Accepts changes from the previous step
