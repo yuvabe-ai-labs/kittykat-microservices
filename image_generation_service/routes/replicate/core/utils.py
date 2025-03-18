@@ -45,3 +45,36 @@ def format_deployment_response(deployment_data: Dict[str, Any]) -> Dict[str, Any
         "autoscale": deployment_data.get("autoscale", False),
         "cloud": deployment_data.get("cloud", ""),
     }
+
+
+def format_prediction_response(response_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Formats prediction response data to match our API schema.
+
+    Args:
+        response_data: Raw API response data.
+
+    Returns:
+        Formatted prediction data.
+    """
+    return {
+        "id": response_data.get("id"),
+        "model": response_data.get("model"),
+        "version": response_data.get("version"),
+        "input": response_data.get("input", {}),
+        "logs": response_data.get("logs"),
+        "output": response_data.get("output"),
+        "error": response_data.get("error"),
+        "status": response_data.get("status"),
+        "created_at": response_data.get("created_at"),
+        "started_at": response_data.get("started_at"),
+        "completed_at": response_data.get("completed_at"),
+        "data_removed": response_data.get("data_removed", False),
+        "metrics": response_data.get("metrics", {}),
+        "urls": {
+            "get": response_data["urls"].get("get"),
+            "cancel": response_data["urls"].get("cancel"),
+            "stream": response_data["urls"].get("stream"),
+        },
+        "source": response_data.get("source"),
+    }
