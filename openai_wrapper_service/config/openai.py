@@ -117,10 +117,28 @@ async def generate_ai_response(
 
 
 async def describe_image(
-    file_url: HttpUrl,
+    file_url: str,
     user_prompt: str = "Describe this image",
+    focus_entity: Optional[str] = None,
+    trigger_word: Optional[str] = None,
     model: str = "gpt-4o-mini",
 ) -> str:
+    prompt_text = user_prompt
+
+    if focus_entity:
+        prompt_text += (
+            f" Focus primarily on {focus_entity}, providing an in-depth description of its appearance, "
+            f"characteristics, and role within the image. Highlight its size, shape, color, and any distinguishing features. "
+            f"If it interacts with other elements in the scene, describe the interaction in detail."
+        )
+
+    if trigger_word:
+        prompt_text += (
+            f" After describing {focus_entity}, ensure that the word '{trigger_word}' appears naturally in the response. "
+            f"Integrate it in a way that enhances clarity, making sure it follows the description of {focus_entity} "
+            f"without disrupting the natural flow of the explanation."
+        )
+
     response = await async_client.chat.completions.create(
         model=model,
         messages=[
@@ -131,8 +149,8 @@ async def describe_image(
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": user_prompt},
-                    {"type": "image_url", "image_url": {"url": file_url}},
+                    {"type": "text", "text": prompt_text},
+                    {"type": "image_url", "image_url": {"url": str(file_url)}},
                 ],
             },
         ],

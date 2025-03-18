@@ -18,7 +18,13 @@ async def image_to_description(request: ImageToDescriptionRequest):
         if not request.image_url:
             raise ValueError("Image URL is required")
 
-        description = await describe_image(request.image_url, request.user_prompt)
+        description = await describe_image(
+            request.image_url,
+            request.user_prompt,
+            request.focus_entity,
+            request.trigger_word,
+            model=request.openai_model,
+        )
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
             message="Image description generated successfully",
