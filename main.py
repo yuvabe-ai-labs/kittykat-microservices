@@ -6,6 +6,7 @@ from routes.falai_image_generator import router as falai_image_generator_router
 from routes.fashnai_image_generator import router as fashn_image_generator_router
 from routes.replicate_model_trainer import router as replicate_model_trainer_router
 from routes.replicate.replicate_models.router import router as replicate_models_router
+from routes.replicate.predictions.router import router as replicate_predictions_router
 
 app = FastAPI()
 
@@ -26,3 +27,4 @@ app.include_router(falai_image_generator_router, tags=["FalAi Image Generator"])
 app.include_router(fashn_image_generator_router, tags=["Fashn Ai Image Generator"])
 app.include_router(replicate_model_trainer_router, tags=["Replicate Model Trainer"])
 app.include_router(replicate_models_router, tags=["Replicate Models"])
+app.include_router(replicate_predictions_router, tags=["Replicate Predictions"])
