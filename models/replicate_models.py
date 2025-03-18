@@ -66,14 +66,16 @@ class TrainingInput(BaseModel):
     )
     model_owner: str = Field(..., description="Owner of the model to train")
     model_name: str = Field(..., description="Name of the model to train")
-    version_id: Optional[str] = Field(
-        None, description="Version ID of the model to train"
+    version_id: str = Field(
+        ..., description="Version ID of the model to train"
     )  # Optional field with default None
 
     # Required training parameters
-    input_images: HttpUrl = Field(
+    input_images: str = Field(
         ..., description="URL to zip file containing training data"
     )
+    trigger_word: str = Field("TOK", description="Trigger word for training")
+
     # Optional training parameters
     steps: int = Field(1000, ge=3, le=6000, description="Number of training steps")
     lora_rank: int = Field(16, ge=1, le=128, description="LoRA rank value")
