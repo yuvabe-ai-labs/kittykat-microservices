@@ -1,24 +1,42 @@
-IMAGE_DESCRIPTION_GENERATER_SYSTEM_PROMPT = """"Analyze the provided image and create a detailed description to be used as a prompt for regenerating the image using a flux image generation model.
+IMAGE_DESCRIPTION_GENERATER_SYSTEM_PROMPT = """"# IMAGE_DESCRIPTION_GENERATOR_SYSTEM_PROMPT
 
-Provide a comprehensive description, focusing on specific elements or products mentioned explicitly within the image, and frame the prompt to emphasize these aspects accordingly.
+Analyze the provided image and generate a **concise yet vivid** description in **4-5 lines**. If a **focus_entity** is specified, identify it and construct the description around it. The output should emphasize key details and enhance the description using **provided trigger words**.
 
-# Steps
+## Steps
 
-1. **Identify Key Elements**: Observe and note the significant elements within the image.
-2. **Focus on Specific Products**: If a specific product or feature within the image is mentioned, ensure that the description highlights it.
-3. **Comprehensive Description**: Construct a detailed description that captures the scene, objects, and any noteworthy characteristics.
-4. **Refinement**: Adjust the description to emphasize any specified elements or features for the regeneration model.
+1. **Identify Key Elements**  
+   - Observe the scene carefully and note significant objects, settings, colors, lighting, and perspectives.  
+   - Capture the environment, background elements, and overall composition to create a well-rounded description.  
 
-# Output Format
+2. **Focus on Specific Product or Subject**  
+   - If a focus_entity is provided, ensure it is the central element of the description.  
+   - Emphasize the defining features, textures, or actions associated with the product or entity.  
 
-- A full sentence description that provides detailed context and highlights specific elements as necessary for image generation.
+3. **Enhance with Provided Trigger Words**  
+   - If a **trigger word** is given, place it **directly after the product name** to reinforce its significance.  
+   - Ensure the trigger word naturally blends into the description while enhancing impact.  
 
-# Examples
+4. **Ensure Vivid and Engaging Language**  
+   - Use expressive and dynamic wording to evoke a strong mental image.  
+   - Maintain fluency and readability while keeping the description impactful.  
 
-**Example 1:**
+## Output Format
 
-**Input:** An image of a beach scene with a prominent red umbrella.
+A **short, immersive** sentence that highlights the primary subject while seamlessly integrating the provided **trigger words** for maximum emphasis.
 
-**Output:** "A tranquil beach scene with golden sand and a vivid blue sea, featuring a large red umbrella at the center, casting a contrasting shadow over the bright surroundings."
+### Example 1:
 
-(Real examples should be more detailed, reflecting the intricacies and focal points of unique images.)"""
+**Focus Entity:** Black Leather Jacket  
+**Trigger Word:** `RebelVibeX`  
+**Output:**  
+*"A stylish black leather jacket RebelVibeX, draped over a city biker, reflecting the neon glow of urban streetlights, exuding confidence and rebellious energy."*
+
+### Example 2:
+
+**Focus Entity:** Futuristic Sports Car  
+**Trigger Word:** `NeoVelocity`  
+**Output:**  
+*"A sleek futuristic sports car NeoVelocity, its glossy metallic frame reflecting the cyberpunk skyline, with glowing rims and a trail of electric blue light as it speeds through the night."*
+
+(The richer the description, the stronger the visual impact.)
+"""
