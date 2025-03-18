@@ -128,6 +128,9 @@ jobs:
           elif [[ "${{ matrix.path }}" == *"image_generation_service"* ]]; then
             echo "Deploying image_generation_service with REPLICATE_API_KEY, FALAI_API_KEY, and FASHN_API_KEY"
             gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }},FALAI_API_KEY=${{ secrets.FALAI_API_KEY }},FASHN_API_KEY=${{ secrets.FASHN_API_KEY }}
+          elif [[ "${{ matrix.path }}" == *"video_generation_service"* ]]; then  # Add this condition
+            echo "Deploying video_generation_service with REPLICATE_API_KEY"
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }}
           else
             echo "Deploying ${{ env.SERVICE_NAME }} without API keys"
             gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common
