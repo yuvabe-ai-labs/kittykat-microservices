@@ -1,5 +1,7 @@
 import os
-from typing import Dict
+from typing import Dict, Any, Optional, Tuple
+
+import requests
 
 # API Configuration
 REPLICATE_API_TOKEN = os.environ.get("REPLICATE_API_KEY")
@@ -10,7 +12,7 @@ if not REPLICATE_API_TOKEN:
 
 # API Headers
 HEADERS: Dict[str, str] = {
-    "Authorization": f"Token {REPLICATE_API_TOKEN}",
+    "Authorization": f"Bearer {REPLICATE_API_TOKEN}",
     "Content-Type": "application/json",
 }
 
@@ -18,12 +20,13 @@ HEADERS: Dict[str, str] = {
 DEFAULT_OWNER = "kittykat-ai"
 
 
-import requests
-from typing import Dict, Any, Optional, Tuple
-
-
 def make_request(
-    method: str, url: str, payload: Optional[Dict[str, Any]] = None
+    method: str,
+    url: str,
+    payload: Optional[Dict[str, Any] | str] = None,
+    custom_headers: Optional[Dict[str, str]] = None,
+    params: Optional[Dict[str, str]] = None,
+    is_search: bool = False,
 ) -> Tuple[int, Dict[str, Any]]:
     """
     Makes HTTP requests to the Replicate API with error handling
@@ -32,19 +35,35 @@ def make_request(
         method: HTTP method (GET, POST, PATCH, DELETE)
         url: API endpoint URL
         payload: Request payload for POST/PATCH requests
+        custom_headers: Additional headers to include in the request
+        params: Query parameters for GET requests
+        is_search: Whether this is a search request (uses special handling)
 
     Returns:
         Tuple of (status_code, response_data)
     """
+    # Prepare headers by combining default headers with custom headers
+    request_headers = HEADERS.copy()
+    if custom_headers:
+        request_headers.update(custom_headers)
+
     try:
-        if method.upper() == "GET":
-            response = requests.get(url, headers=HEADERS)
+        if is_search:
+            # Special handling for search requests which use a QUERY method
+            # We'll simulate this with a POST request with text/plain content type
+            request_headers["Content-Type"] = "text/plain"
+            response = requests.post(url, data=payload, headers=request_headers)
+        elif method.upper() == "GET":
+            response = requests.get(url, headers=request_headers, params=params)
         elif method.upper() == "POST":
-            response = requests.post(url, json=payload, headers=HEADERS)
+            if isinstance(payload, str):
+                response = requests.post(url, data=payload, headers=request_headers)
+            else:
+                response = requests.post(url, json=payload, headers=request_headers)
         elif method.upper() == "PATCH":
-            response = requests.patch(url, json=payload, headers=HEADERS)
+            response = requests.patch(url, json=payload, headers=request_headers)
         elif method.upper() == "DELETE":
-            response = requests.delete(url, headers=HEADERS)
+            response = requests.delete(url, headers=request_headers)
         else:
             return 400, {"error": f"Unsupported method: {method}"}
 
