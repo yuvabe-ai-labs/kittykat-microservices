@@ -9,6 +9,7 @@ class ImageRequest(BaseModel):
     prompt: str
     model: str = "black-forest-labs/flux-dev"
     enhance_prompt: bool = False
+    provider: Optional[str] = "replicate"
 
     class Config:
         json_schema_extra = {
