@@ -27,7 +27,7 @@ async def generate_with_dalle(prompt: str) -> dict:
             model="dall-e-3",  # Can be parameterized in the future
             prompt=prompt,
             size="1024x1024",  # Can be parameterized in the future
-            quality="standard",
+            quality="hd",
             n=1,
         )
 
