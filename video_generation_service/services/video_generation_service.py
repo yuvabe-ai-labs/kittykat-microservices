@@ -6,7 +6,7 @@ from models.video_generation_model import RunPredictionRequest, PredictionStatus
 load_dotenv()
 
 REPLICATE_API_KEY = os.getenv("REPLICATE_API_KEY")
-MODEL_NAME = "kwaivgi/kling-v1.6-standard"
+# MODEL_NAME = "kwaivgi/kling-v1.6-standard"
 
 
 class ReplicateService:
@@ -19,22 +19,41 @@ class ReplicateService:
         }
 
     async def create_prediction(self, request: RunPredictionRequest) -> str:
-        input_data = {"prompt": request.prompt}
 
-        # Include start_image only if provided
-        if request.start_image:
-            input_data["start_image"] = request.start_image
+        # input_data = {"prompt": request.prompt}
 
-        input_data.update({
+        # # Include start_image only if provided
+        # if request.start_image:
+        #     input_data["start_image"] = request.start_image
+
+        # input_data.update({
+        #     "duration": request.duration,
+        #     "aspect_ratio": request.aspect_ratio,
+        #     "cfg_scale": request.cfg_scale,
+        #     "negative_prompt": request.negative_prompt
+        # })
+
+        model_name = "kwaivgi/kling-v1.6-pro" if request.end_image else "kwaivgi/kling-v1.6-standard"
+        print(f"Using model: {model_name}")
+
+
+        input_data = {
+            "prompt": request.prompt,
             "duration": request.duration,
             "aspect_ratio": request.aspect_ratio,
             "cfg_scale": request.cfg_scale,
             "negative_prompt": request.negative_prompt
-        })
+        }
+
+        # Include start and end images only if provided
+        if request.start_image:
+            input_data["start_image"] = request.start_image
+        if request.end_image:
+            input_data["end_image"] = request.end_image
 
         async with httpx.AsyncClient(timeout=60) as client:
             response = await client.post(
-                f"{self.BASE_URL}/models/{MODEL_NAME}/predictions",
+                f"{self.BASE_URL}/models/{model_name}/predictions",
                 headers=self.headers,
                 json={"input": input_data},
             )
