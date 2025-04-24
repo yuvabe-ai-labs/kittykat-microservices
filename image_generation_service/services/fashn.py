@@ -7,6 +7,7 @@ from models.fashn_models import (
 
 from dotenv import load_dotenv
 import os
+from config.logger import logger
 
 load_dotenv()
 
@@ -24,19 +25,43 @@ class FashnService:
         }
 
     async def run_prediction(self, request: RunPredictionRequest) -> str:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.post(
-                f"{self.BASE_URL}/run", headers=self.headers, json=request.dict()
+        try:
+            logger.debug(
+                f"Sending prediction request to FASHN API: {request.dict(exclude_none=True)}"
             )
-            response.raise_for_status()
-            data = response.json()
-            return data["id"]
+            async with httpx.AsyncClient(timeout=60) as client:
+                response = await client.post(
+                    f"{self.BASE_URL}/run",
+                    headers=self.headers,
+                    json=request.dict(exclude_none=True),
+                )
+                response.raise_for_status()
+                data = response.json()
+                logger.debug(f"Received response from FASHN API: {data}")
+                return data["id"]
+        except httpx.HTTPStatusError as e:
+            logger.error(f"HTTP error from FASHN API: {e.response.text}")
+            raise
+        except Exception as e:
+            logger.error(f"Error during FASHN API prediction request: {str(e)}")
+            raise
 
     async def get_prediction_status(self, prediction_id: str) -> PredictionStatus:
-        async with httpx.AsyncClient(timeout=60) as client:
-            response = await client.get(
-                f"{self.BASE_URL}/status/{prediction_id}", headers=self.headers
+        try:
+            logger.debug(f"Fetching status for prediction ID: {prediction_id}")
+            async with httpx.AsyncClient(timeout=60) as client:
+                response = await client.get(
+                    f"{self.BASE_URL}/status/{prediction_id}", headers=self.headers
+                )
+                response.raise_for_status()
+                data = response.json()
+                logger.debug(f"Received status response from FASHN API: {data}")
+                return PredictionStatus(**data)
+        except httpx.HTTPStatusError as e:
+            logger.error(
+                f"HTTP error from FASHN API status endpoint: {e.response.text}"
             )
-            response.raise_for_status()
-            data = response.json()
-            return PredictionStatus(**data)
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching prediction status: {str(e)}")
+            raise
