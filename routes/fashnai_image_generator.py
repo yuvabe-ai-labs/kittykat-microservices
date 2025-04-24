@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from models.fashn_models import (
     RunPredictionRequest,
     RunPredictionResponse,
@@ -8,7 +8,7 @@ from models.global_models import GeneralResponse
 from services.fashn import FashnService
 from services.gcp import upload_to_gcp
 from utils.shortuid import generate_short_uid
-from config.logger import logger  # Importing the logger
+from config.logger import logger
 
 router = APIRouter()
 
@@ -45,6 +45,18 @@ async def get_prediction_status(
 
         if response.status == "completed":
             output_urls = response.output
+            if not output_urls:
+                logger.warning(
+                    f"Prediction completed but no output URLs provided for ID: {prediction_id}"
+                )
+                return GeneralResponse(
+                    status_code=200,
+                    data=PredictionStatus(
+                        status=response.status, id=response.id, output=[]
+                    ),
+                    message="Prediction completed but no output URLs provided",
+                )
+
             logger.info(
                 f"Prediction completed. Uploading outputs to GCP for ID: {prediction_id}"
             )
