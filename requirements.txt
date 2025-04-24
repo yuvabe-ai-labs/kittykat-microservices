@@ -4,5 +4,5 @@ requests
 aiohttp
 google-cloud-storage
 fal_client
-httpx
 openai
+httpx
