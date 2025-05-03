@@ -69,6 +69,7 @@ class ReplicateService:
             )
             response.raise_for_status()
             data = response.json()
+            print("data inside service",data)
             return PredictionStatus(**data)
 
     async def cancel_prediction(self, prediction_id: str) -> dict:
