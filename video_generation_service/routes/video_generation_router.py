@@ -54,15 +54,16 @@ async def get_prediction_status(
                     status=status.status,
                     id=status.id,
                     output=uploaded_urls,
+                    logs=status.logs
                 ),
                 message="Prediction status retrieved and uploaded to GCP successfully",
             )
 
-        logger.info(f"Prediction not completed yet. Status: {status.status}")
+        logger.info(f"Prediction not completed yet. Status: {status}")
         return BaseApiResponse(
             status_code=200,
             data=PredictionStatus(
-                status=status.status, id=status.id, output=status.output
+                status=status.status, id=status.id, output=status.output , logs=status.logs
             ),
             message="Prediction status retrieved successfully",
         )
