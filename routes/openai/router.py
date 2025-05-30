@@ -41,7 +41,7 @@ async def generate_image(
             url = ImageService.upload_base64_image_to_bucket(
                 image_base64=image_base64,
                 bucket_name=request.bucket,
-                prefix=request.bukcet_path,
+                prefix=request.bucket_path,
                 type=request.parameters.output_format
             )
 
