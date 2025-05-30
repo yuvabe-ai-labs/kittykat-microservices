@@ -28,4 +28,4 @@ class ImageGenerationRequest(BaseModel):
     prompt: str
     parameters: OpenAIImageGenerationParameters
     bucket: str
-    bukcet_path: str
+    bucket_path: str
