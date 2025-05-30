@@ -32,16 +32,24 @@ async def generate_image(
             n=request.parameters.n
         )
 
-        print(len(result.data))
         asset_urls = []
 
-        for image in result.data:
+        for idx, image in enumerate(result.data):
             image_base64 = image.b64_json
+
+            dir_path, file_name = os.path.split(request.bucket_path)
+            name, ext = os.path.splitext(file_name)
+
+            # Generate a unique filename using the index
+            unique_filename = f"{name}_{idx}{ext}"
+
+            # Combine the directory with the new unique filename
+            unique_prefix = os.path.join(dir_path, unique_filename)
 
             url = ImageService.upload_base64_image_to_bucket(
                 image_base64=image_base64,
                 bucket_name=request.bucket,
-                prefix=request.bucket_path,
+                prefix=unique_prefix,
                 type=request.parameters.output_format
             )
 
