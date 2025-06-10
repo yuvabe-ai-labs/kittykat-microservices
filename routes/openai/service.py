@@ -33,7 +33,7 @@ class ImageService:
     @staticmethod
     def url_to_file_safe(url: str) -> Optional[BytesIO]:
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=30)
             response.raise_for_status()
 
             # Try to extract filename from URL
@@ -60,21 +60,19 @@ class ImageService:
 
     def url_to_mask_file_safe(url: str) -> Optional[BytesIO]:
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=30)
             response.raise_for_status()
 
             img = Image.open(BytesIO(response.content))
 
-            if img.mode != "RGBA":
-                logger.info(
-                    f"Converting mask image to RGBA from mode: {img.mode}")
-                # Convert to grayscale first to preserve luminance
-                gray = img.convert("L")
-                # Create alpha based on white (visible) vs black (transparent)
-                alpha = gray.point(lambda x: 0 if x == 0 else 255)
-                # Create a fully transparent RGBA image
-                img = Image.new("RGBA", img.size, (0, 0, 0, 0))
-                img.putalpha(alpha)
+            # 1. Load your black & white mask as a grayscale image
+            mask = Image.open(img).convert("L")
+
+            # 2. Convert it to RGBA so it has space for an alpha channel
+            mask_rgba = mask.convert("RGBA")
+
+            # 3. Then use the mask itself to fill that alpha channel
+            mask_rgba.putalpha(mask)
 
             buf = BytesIO()
             img.save(buf, format="PNG")
