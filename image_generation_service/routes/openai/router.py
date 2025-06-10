@@ -3,7 +3,6 @@ import io
 import os
 from urllib.parse import urlparse
 import requests  
-
 from fastapi import APIRouter, status
 from openai import OpenAI
 from core.utils import BaseApiResponse
@@ -37,7 +36,6 @@ async def generate_image(
             n=request.parameters.n
         )
 
-        print(len(result.data))
         asset_urls = []
 
         for image in result.data:
@@ -66,6 +64,7 @@ async def generate_image(
             message="An error occurred while generating the image. Please try again later",
             data=None
         )
+
 @router.post("/edit", response_model=BaseApiResponse)
 async def remix_image(request: ImageEditRequest):
     try:
@@ -136,3 +135,4 @@ async def remix_image(request: ImageEditRequest):
             message="An error occurred while remixing the image.",
             data=None
         )
+

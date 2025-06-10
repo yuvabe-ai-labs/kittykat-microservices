@@ -29,6 +29,7 @@ class RunPredictionResponse(BaseModel):
 class PredictionStatus(BaseModel):
     id: str
     status: str
+    logs: str
     output: Optional[Union[HttpUrl, List[HttpUrl]]] = None
 
     @field_validator("output", mode="before")
