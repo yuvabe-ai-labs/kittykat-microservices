@@ -1,10 +1,6 @@
-import base64
-import io
-import os
 from urllib.parse import urlparse
-import requests  
 from fastapi import APIRouter, status
-from openai import OpenAI
+from openai import NotGiven, OpenAI
 from core.utils import BaseApiResponse
 from config.logger import logger
 from .models import ImageEditRequest, ImageGenerationRequest
@@ -65,74 +61,71 @@ async def generate_image(
             data=None
         )
 
+
 @router.post("/edit", response_model=BaseApiResponse)
-async def remix_image(request: ImageEditRequest):
+async def edit_image(request: ImageEditRequest):
     try:
-        request.validate()
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        logger.info(f"Received prompt: '{request.prompt}'")
-        # Handle input image
-        if request.image_base64_list:
-            image_data = [base64.b64decode(img) for img in request.image_base64_list]
-        elif request.image_base64:
-            image_data = base64.b64decode(request.image_base64)
-        elif request.image_url:
-            response = requests.get(request.image_url)
-            file_ext = os.path.splitext(urlparse(request.image_url).path)[1].lower()
-            filename = f"input{file_ext or '.png'}"
-            img_file = io.BytesIO(response.content)
-            img_file.name = filename
-            image_data = img_file
-        else:
-            raise ValueError("An image input (image_base64, image_base64_list, or image_url) must be provided.")
+        client = OpenAI()
 
-        # Prepare common arguments for OpenAI API call
-        edit_args = {
-            "model": request.model.value,
-            "prompt": request.prompt or "",
-            "image": image_data,
-            "size": request.parameters.size,
-            "background": request.parameters.background,
-            "quality": request.parameters.quality,
-            "n": request.parameters.n
-        }
+        # Mask image
+        mask_image = ImageService.url_to_mask_file_safe(
+            request.mask_image) if request.mask_image else NotGiven
 
-        # Add mask only if provided
-        if request.mask_base64:
-            edit_args["mask"] = base64.b64decode(request.mask_base64)
+        if mask_image is None:
+            raise ValueError(
+                "Mask image could not be downloaded or is invalid. It must have an alpha channel.")
+
+        # Base image
+        base_image_file = ImageService.url_to_file_safe(request.base_image)
+        if base_image_file is None:
+            raise ValueError("Base image could not be downloaded.")
+
+        # Reference images
+        reference_image_files = [
+            f for url in (request.reference_images or [])
+            if (f := ImageService.url_to_file_safe(url)) is not None
+        ]
+
+        # OpenAI treates first image as base and rest as references
+        image_files = [base_image_file] + reference_image_files
 
         # Call OpenAI image edit with explicit arguments
-        result = client.images.edit(**edit_args)
+        result = client.images.edit(
+            model="gpt-image-1",
+            size=request.parameters.size,
+            background="auto" if request.parameters.output_format == "jpeg" else request.parameters.background,
+            quality=request.parameters.quality,
+            n=request.parameters.n,
+
+            prompt=request.prompt,
+            mask=mask_image,
+            image=image_files
+        )
 
         asset_urls = []
-        for i, image in enumerate(result.data):
+
+        for image in result.data:
             image_base64 = image.b64_json
-            suffix = f"_{i+1}" if request.parameters.n > 1 else ""
-            path_with_suffix = request.bucket_path.replace(".webp", f"{suffix}.webp")
+
             url = ImageService.upload_base64_image_to_bucket(
                 image_base64=image_base64,
                 bucket_name=request.bucket,
-                prefix=path_with_suffix,
+                prefix=request.bucket_path,
                 type=request.parameters.output_format
             )
+
             asset_urls.append(url)
 
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
-            message="Image remixed successfully.",
+            message="Image edited successfully.",
             data={"asset_urls": asset_urls}
         )
-    except ValueError as ve:
-        return BaseApiResponse(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            message=str(ve),
-            data=None
-        )
+
     except Exception as e:
         logger.error(f"Error remixing image: {e}")
         return BaseApiResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            message="An error occurred while remixing the image.",
+            message="An error occurred while editing the image.",
             data=None
         )
-
