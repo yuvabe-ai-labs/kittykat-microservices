@@ -66,7 +66,7 @@ class ImageService:
             img = Image.open(BytesIO(response.content))
 
             # 1. Load your black & white mask as a grayscale image
-            mask = Image.open(img).convert("L")
+            mask = img.convert("L")
 
             # 2. Convert it to RGBA so it has space for an alpha channel
             mask_rgba = mask.convert("RGBA")
