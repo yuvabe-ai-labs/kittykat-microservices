@@ -1,4 +1,4 @@
-from urllib.parse import urlparse
+import os
 from fastapi import APIRouter, status
 from openai import NotGiven, OpenAI
 from core.utils import BaseApiResponse
@@ -33,13 +33,19 @@ async def generate_image(
 
         asset_urls = []
 
-        for image in result.data:
+        for idx, image in enumerate(result.data):
             image_base64 = image.b64_json
+
+            if not image_base64:
+                continue
+
+            file_name, file_ext = os.path.splitext(request.bucket_path)
+            prefix = f"{file_name}_{idx}{file_ext}" if request.parameters.n > 1 else request.bucket_path
 
             url = ImageService.upload_base64_image_to_bucket(
                 image_base64=image_base64,
                 bucket_name=request.bucket,
-                prefix=request.bucket_path,
+                prefix=prefix,
                 type=request.parameters.output_format
             )
 
@@ -100,13 +106,19 @@ async def edit_image(request: ImageEditRequest):
 
         asset_urls = []
 
-        for image in result.data:
+        for idx, image in enumerate(result.data):
             image_base64 = image.b64_json
+
+            if not image_base64:
+                continue
+
+            file_name, file_ext = os.path.splitext(request.bucket_path)
+            prefix = f"{file_name}_{idx}{file_ext}" if request.parameters.n > 1 else request.bucket_path
 
             url = ImageService.upload_base64_image_to_bucket(
                 image_base64=image_base64,
                 bucket_name=request.bucket,
-                prefix=request.bucket_path,
+                prefix=prefix,
                 type=request.parameters.output_format
             )
 
@@ -127,67 +139,59 @@ async def edit_image(request: ImageEditRequest):
         )
 
 
-# @router.post("/vton", response_model=BaseApiResponse)
-# async def vton_image(request: VirtualTryOnRequest):
-#     """
-#     Virtual Try-On (VTON) image generation.
-#     """
-#     try:
-#         lifestyle_image_generated = None
+@router.post("/vton", response_model=BaseApiResponse)
+async def vton_image(request: VirtualTryOnRequest):
+    """
+    Virtual Try-On (VTON) image generation.
+    """
+    try:
 
-#         if request.reference_image:
-#             base_64_image = ImageService.create_lifestyle_image(
-#                 reference_image=request.reference_image,
-#                 model_image=request.model_image,
-#             )
+        image_files = [
+            ImageService.url_to_file_safe(
+                request.model_image),
+            ImageService.url_to_file_safe(request.product_image),
+        ]
 
-#             lifestyle_image_generated = ImageService.upload_base64_image_to_bucket(
-#                 image_base64=base_64_image,
-#                 bucket_name=request.bucket,
-#                 prefix=request.bucket_path,
-#                 type=request.parameters.output_format
-#             )
+        result = client.images.edit(
+            model="gpt-image-1",
+            size=request.parameters.size,
+            background="auto",
+            quality=request.parameters.quality,
+            n=request.parameters.n,
+            prompt=request.prompt,
+            image=image_files
+        )
 
-#         image_files = [
-#             ImageService.url_to_file_safe(
-#                 request.reference_image)
-#             if lifestyle_image_generated else ImageService.url_to_file_safe(
-#                 request.model_image),
-#             ImageService.url_to_file_safe(request.product_image),
-#         ]
+        asset_urls = []
 
-#         result = client.images.edit(
-#             model="gpt-image-1",
-#             size=request.parameters.size,
-#             background="auto",
-#             quality=request.parameters.quality,
-#             n=1,
-#             prompt=request.prompt,
-#             image=image_files
-#         )
+        for idx, image in enumerate(result.data):
+            image_base64 = image.b64_json
 
-#         asset_urls = []
+            if not image_base64:
+                continue
 
-#         image_base64 = result.data[0].b64_json
-#         url = ImageService.upload_base64_image_to_bucket(
-#             image_base64=image_base64,
-#             bucket_name=request.bucket,
-#             prefix=request.bucket_path,
-#             type=request.parameters.output_format
-#         )
+            file_name, file_ext = os.path.splitext(request.bucket_path)
+            prefix = f"{file_name}_{idx}{file_ext}" if request.parameters.n > 1 else request.bucket_path
 
-#         asset_urls.append(url)
+            url = ImageService.upload_base64_image_to_bucket(
+                image_base64=image_base64,
+                bucket_name=request.bucket,
+                prefix=prefix,
+                type=request.parameters.output_format
+            )
 
-#         return BaseApiResponse(
-#             status_code=status.HTTP_200_OK,
-#             message="Virtual try on image generated successfully.",
-#             data={"asset_urls": asset_urls}
-#         )
+            asset_urls.append(url)
 
-#     except Exception as e:
-#         logger.error(f"Error generating VTON image: {e}")
-#         return BaseApiResponse(
-#             status_code=status.HTTP_400_BAD_REQUEST,
-#             message="An error occurred while generating the VTON image.",
-#             data=None
-#         )
+        return BaseApiResponse(
+            status_code=status.HTTP_200_OK,
+            message="Virtual try on image generated successfully.",
+            data={"asset_urls": asset_urls}
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating VTON image: {e}")
+        return BaseApiResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message="An error occurred while generating the VTON image.",
+            data=None
+        )

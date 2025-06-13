@@ -48,7 +48,8 @@ class ImageEditRequest(BaseModel):
 
 class VirtualTryOnRequest(BaseModel):
     model: OpenAIImageGenerationModels
-    prompt: Optional[str] = Field(default="Virtual try-on")
+    prompt: Optional[str] = Field(
+        default="Virtual try-on image generation", min_length=2)
     reference_image: Optional[str] = None
     model_image: str
     product_image: str
