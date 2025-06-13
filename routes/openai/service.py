@@ -52,7 +52,7 @@ class ImageService:
                 filename = "file.png"
 
             file_like = BytesIO(response.content)
-            file_like.name = filename  # OpenAI uses this to determine mime type
+            file_like.name = filename
             return file_like
 
         except requests.RequestException as e:
@@ -95,10 +95,16 @@ class ImageService:
     ) -> str:
         try:
 
-            image_files = [
-                ImageService.url_to_file_safe(reference_image),
-                ImageService.url_to_file_safe(model_image)
-            ]
+            image_files = []
+            reference_image = ImageService.url_to_file_safe(reference_image)
+            model_image = ImageService.url_to_file_safe(model_image)
+
+            if reference_image is None or model_image is None:
+                raise ValueError(
+                    "One or both images could not be downloaded or are invalid.")
+
+            image_files.append(model_image)
+            image_files.append(reference_image)
 
             result = client.images.edit(
                 model="gpt-image-1",
@@ -106,7 +112,7 @@ class ImageService:
                 background="auto",
                 quality="high",
                 n=1,
-                prompt="Create a lifestyle image with the provided reference and model images.",
+                prompt="Generate a lifestyle scene inspired by the reference image, seamlessly integrating the provided model image.",
                 image=image_files
             )
 
@@ -114,6 +120,8 @@ class ImageService:
                 raise Exception("No image data returned from OpenAI API")
 
             image_base64 = result.data[0].b64_json
+
+            logger.info("Lifestyle image created successfully.")
 
             return image_base64
 
