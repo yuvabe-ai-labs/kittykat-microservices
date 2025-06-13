@@ -44,3 +44,14 @@ class ImageEditRequest(BaseModel):
         if v is not None and len(v) > 10:
             raise ValueError("reference_images can contain at most 10 URLs")
         return v
+
+
+class VirtualTryOnRequest(BaseModel):
+    model: OpenAIImageGenerationModels
+    prompt: Optional[str] = Field(default="Virtual try-on")
+    reference_image: Optional[str] = None
+    model_image: str
+    product_image: str
+    parameters: OpenAIImageGenerationParameters
+    bucket: str
+    bucket_path: str

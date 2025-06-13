@@ -3,8 +3,9 @@ from fastapi import APIRouter, status
 from openai import NotGiven, OpenAI
 from core.utils import BaseApiResponse
 from config.logger import logger
-from .models import ImageEditRequest, ImageGenerationRequest
+from .models import ImageEditRequest, ImageGenerationRequest, VirtualTryOnRequest
 from .service import ImageService
+from .config import client
 
 router = APIRouter(prefix="/openai")
 
@@ -18,8 +19,6 @@ async def generate_image(
     """
 
     try:
-        client = OpenAI()
-
         result = client.images.generate(
             model=request.model,
             prompt=request.prompt,
@@ -65,13 +64,11 @@ async def generate_image(
 @router.post("/edit", response_model=BaseApiResponse)
 async def edit_image(request: ImageEditRequest):
     try:
-        client = OpenAI()
-
         # Mask image
-        mask_image = ImageService.url_to_mask_file_safe(
+        masked_image = ImageService.url_to_mask_file_safe(
             request.mask_image) if request.mask_image else NotGiven
 
-        if mask_image is None:
+        if request.mask_image and masked_image is None:
             raise ValueError(
                 "Mask image could not be downloaded or is invalid. It must have an alpha channel.")
 
@@ -96,9 +93,8 @@ async def edit_image(request: ImageEditRequest):
             background="auto" if request.parameters.output_format == "jpeg" else request.parameters.background,
             quality=request.parameters.quality,
             n=request.parameters.n,
-
             prompt=request.prompt,
-            mask=mask_image,
+            mask=masked_image,
             image=image_files
         )
 
@@ -129,3 +125,69 @@ async def edit_image(request: ImageEditRequest):
             message="An error occurred while editing the image.",
             data=None
         )
+
+
+# @router.post("/vton", response_model=BaseApiResponse)
+# async def vton_image(request: VirtualTryOnRequest):
+#     """
+#     Virtual Try-On (VTON) image generation.
+#     """
+#     try:
+#         lifestyle_image_generated = None
+
+#         if request.reference_image:
+#             base_64_image = ImageService.create_lifestyle_image(
+#                 reference_image=request.reference_image,
+#                 model_image=request.model_image,
+#             )
+
+#             lifestyle_image_generated = ImageService.upload_base64_image_to_bucket(
+#                 image_base64=base_64_image,
+#                 bucket_name=request.bucket,
+#                 prefix=request.bucket_path,
+#                 type=request.parameters.output_format
+#             )
+
+#         image_files = [
+#             ImageService.url_to_file_safe(
+#                 request.reference_image)
+#             if lifestyle_image_generated else ImageService.url_to_file_safe(
+#                 request.model_image),
+#             ImageService.url_to_file_safe(request.product_image),
+#         ]
+
+#         result = client.images.edit(
+#             model="gpt-image-1",
+#             size=request.parameters.size,
+#             background="auto",
+#             quality=request.parameters.quality,
+#             n=1,
+#             prompt=request.prompt,
+#             image=image_files
+#         )
+
+#         asset_urls = []
+
+#         image_base64 = result.data[0].b64_json
+#         url = ImageService.upload_base64_image_to_bucket(
+#             image_base64=image_base64,
+#             bucket_name=request.bucket,
+#             prefix=request.bucket_path,
+#             type=request.parameters.output_format
+#         )
+
+#         asset_urls.append(url)
+
+#         return BaseApiResponse(
+#             status_code=status.HTTP_200_OK,
+#             message="Virtual try on image generated successfully.",
+#             data={"asset_urls": asset_urls}
+#         )
+
+#     except Exception as e:
+#         logger.error(f"Error generating VTON image: {e}")
+#         return BaseApiResponse(
+#             status_code=status.HTTP_400_BAD_REQUEST,
+#             message="An error occurred while generating the VTON image.",
+#             data=None
+#         )
