@@ -6,6 +6,7 @@ from config.logger import logger
 from .models import ImageEditRequest, ImageGenerationRequest, VirtualTryOnRequest
 from .service import ImageService
 from .config import client
+from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 
 router = APIRouter(prefix="/openai")
 
@@ -147,10 +148,14 @@ async def vton_image(request: VirtualTryOnRequest):
     try:
 
         image_files = [
-            ImageService.url_to_file_safe(
-                request.model_image),
+            ImageService.url_to_file_safe(request.model_image),
             ImageService.url_to_file_safe(request.product_image),
         ]
+
+        prompt = VIRTUAL_TRY_ON_BASE_PROMPT
+
+        if request.prompt:
+            prompt += f"\nAdditional instructions: {request.prompt}"
 
         result = client.images.edit(
             model="gpt-image-1",
@@ -158,7 +163,7 @@ async def vton_image(request: VirtualTryOnRequest):
             background="auto",
             quality=request.parameters.quality,
             n=request.parameters.n,
-            prompt=request.prompt,
+            prompt=prompt,
             image=image_files
         )
 
