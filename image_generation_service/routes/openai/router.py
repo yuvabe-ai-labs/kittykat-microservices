@@ -1,9 +1,10 @@
 import os
 from fastapi import APIRouter, status
 from openai import NotGiven, OpenAI
+import shortuuid
 from core.utils import BaseApiResponse
 from config.logger import logger
-from .models import ImageEditRequest, ImageGenerationRequest, VirtualTryOnRequest
+from .models import ImageEditRequest, ImageGenerationRequest
 from .service import ImageService
 from .config import client
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
@@ -20,28 +21,49 @@ async def generate_image(
     """
 
     try:
-        result = client.images.generate(
-            model=request.model,
-            prompt=request.prompt,
-            size=request.parameters.size,
-            background="auto" if request.parameters.output_format == "jpeg" else request.parameters.background,
-            quality=request.parameters.quality,
-            output_format=request.parameters.output_format,
-            moderation=request.parameters.moderation,
-            output_compression=100 if request.parameters.output_format == "png" else request.parameters.output_compression,
-            n=request.parameters.n
-        )
+        # Reference images
+        reference_image_files = [
+            f for url in (request.reference_images or [])
+            if (f := ImageService.url_to_file_safe(url)) is not None
+        ]
+
+        if len(reference_image_files) == 0:
+            result = client.images.generate(
+                model=request.model,
+                prompt=request.prompt,
+                size=request.parameters.size,
+                background=request.parameters.background,
+                quality=request.parameters.quality,
+                output_format=request.parameters.output_format,
+                moderation=request.parameters.moderation,
+                output_compression=request.parameters.output_compression,
+                n=request.parameters.n
+            )
+
+        else:
+            # IMPORTANT: Not to use generate image function as it does not support reference images
+            result = client.images.edit(
+                model="gpt-image-1",
+                size=request.parameters.size,
+                background=request.parameters.background,
+                quality=request.parameters.quality,
+                n=request.parameters.n,
+                prompt=request.prompt,
+                image=reference_image_files,
+                output_compression=request.parameters.output_compression,
+                output_format=request.parameters.output_format,
+            )
 
         asset_urls = []
 
-        for idx, image in enumerate(result.data):
+        for image in result.data:
             image_base64 = image.b64_json
 
             if not image_base64:
                 continue
 
-            file_name, file_ext = os.path.splitext(request.bucket_path)
-            prefix = f"{file_name}_{idx}{file_ext}" if request.parameters.n > 1 else request.bucket_path
+            filename = f"{shortuuid.uuid()}.{request.parameters.output_format or 'webp'}"
+            prefix = f"{request.bucket_path}/{filename}"
 
             url = ImageService.upload_base64_image_to_bucket(
                 image_base64=image_base64,
@@ -97,10 +119,12 @@ async def edit_image(request: ImageEditRequest):
         result = client.images.edit(
             model="gpt-image-1",
             size=request.parameters.size,
-            background="auto" if request.parameters.output_format == "jpeg" else request.parameters.background,
+            background=request.parameters.background,
             quality=request.parameters.quality,
             n=request.parameters.n,
             prompt=request.prompt,
+            output_compression=request.parameters.output_compression,
+            output_format=request.parameters.output_format,
             mask=masked_image,
             image=image_files
         )
@@ -113,8 +137,8 @@ async def edit_image(request: ImageEditRequest):
             if not image_base64:
                 continue
 
-            file_name, file_ext = os.path.splitext(request.bucket_path)
-            prefix = f"{file_name}_{idx}{file_ext}" if request.parameters.n > 1 else request.bucket_path
+            filename = f"{shortuuid.uuid()}.{request.parameters.output_format or 'webp'}"
+            prefix = f"{request.bucket_path}/{filename}"
 
             url = ImageService.upload_base64_image_to_bucket(
                 image_base64=image_base64,
@@ -136,67 +160,5 @@ async def edit_image(request: ImageEditRequest):
         return BaseApiResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             message="An error occurred while editing the image.",
-            data=None
-        )
-
-
-@router.post("/vton", response_model=BaseApiResponse)
-async def vton_image(request: VirtualTryOnRequest):
-    """
-    Virtual Try-On (VTON) image generation.
-    """
-    try:
-
-        image_files = [
-            ImageService.url_to_file_safe(request.model_image),
-            ImageService.url_to_file_safe(request.product_image),
-        ]
-
-        prompt = VIRTUAL_TRY_ON_BASE_PROMPT
-
-        if request.prompt:
-            prompt += f"\nAdditional instructions: {request.prompt}"
-
-        result = client.images.edit(
-            model="gpt-image-1",
-            size=request.parameters.size,
-            background="auto",
-            quality=request.parameters.quality,
-            n=request.parameters.n,
-            prompt=prompt,
-            image=image_files
-        )
-
-        asset_urls = []
-
-        for idx, image in enumerate(result.data):
-            image_base64 = image.b64_json
-
-            if not image_base64:
-                continue
-
-            file_name, file_ext = os.path.splitext(request.bucket_path)
-            prefix = f"{file_name}_{idx}{file_ext}" if request.parameters.n > 1 else request.bucket_path
-
-            url = ImageService.upload_base64_image_to_bucket(
-                image_base64=image_base64,
-                bucket_name=request.bucket,
-                prefix=prefix,
-                type=request.parameters.output_format
-            )
-
-            asset_urls.append(url)
-
-        return BaseApiResponse(
-            status_code=status.HTTP_200_OK,
-            message="Virtual try on image generated successfully.",
-            data={"asset_urls": asset_urls}
-        )
-
-    except Exception as e:
-        logger.error(f"Error generating VTON image: {e}")
-        return BaseApiResponse(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            message="An error occurred while generating the VTON image.",
             data=None
         )
