@@ -4,7 +4,7 @@ from openai import NotGiven, OpenAI
 import shortuuid
 from core.utils import BaseApiResponse
 from config.logger import logger
-from .models import ImageEditRequest, ImageGenerationRequest
+from .models import ImageEditRequest, ImageGenerationRequest, VirtualTryOnRequest
 from .service import ImageService
 from .config import client
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
@@ -160,5 +160,67 @@ async def edit_image(request: ImageEditRequest):
         return BaseApiResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             message="An error occurred while editing the image.",
+            data=None
+        )
+
+
+@router.post("/vton", response_model=BaseApiResponse)
+async def vton_image(request: VirtualTryOnRequest):
+    """
+    Virtual Try-On (VTON) image generation.
+    """
+    try:
+
+        image_files = [
+            ImageService.url_to_file_safe(request.model_image),
+            ImageService.url_to_file_safe(request.product_image),
+        ]
+
+        prompt = VIRTUAL_TRY_ON_BASE_PROMPT
+
+        if request.prompt:
+            prompt += f"\nAdditional instructions: {request.prompt}"
+
+        result = client.images.edit(
+            model="gpt-image-1",
+            size=request.parameters.size,
+            background="auto",
+            quality=request.parameters.quality,
+            n=request.parameters.n,
+            prompt=prompt,
+            image=image_files
+        )
+
+        asset_urls = []
+
+        for idx, image in enumerate(result.data):
+            image_base64 = image.b64_json
+
+            if not image_base64:
+                continue
+
+            filename = f"{shortuuid.uuid()}.{request.parameters.output_format or 'webp'}"
+            prefix = f"{request.bucket_path}/{filename}"
+
+            url = ImageService.upload_base64_image_to_bucket(
+                image_base64=image_base64,
+                bucket_name=request.bucket,
+                prefix=prefix,
+                type=request.parameters.output_format
+            )
+
+            asset_urls.append(url)
+
+        return BaseApiResponse(
+            status_code=status.HTTP_200_OK,
+            message="Virtual try on image generated successfully.",
+            data={"asset_urls": asset_urls}
+        )
+
+    except Exception as e:
+        logger.error(f"Error generating VTON image: {e}")
+        return BaseApiResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message="An error occurred while generating the VTON image.",
             data=None
         )
