@@ -1,6 +1,6 @@
-import os
+import openai
 from fastapi import APIRouter, status
-from openai import NotGiven, OpenAI
+from openai import NotGiven
 import shortuuid
 from core.utils import BaseApiResponse
 from config.logger import logger
@@ -81,12 +81,26 @@ async def generate_image(
                 "asset_urls": asset_urls
             }
         )
+    except openai.BadRequestError as e:
+        logger.error(f"OpenAI BadRequestError: {e}")
+        return BaseApiResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message="Invalid request parameters. Please check your input.",
+            data={
+                "error": str(e),
+                "is_nsfw_detected": e.code == "moderation_blocked"
+            }
+        )
+
     except Exception as e:
         logger.error(f"Error generating image: {e}")
         return BaseApiResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             message="An error occurred while generating the image. Please try again later",
-            data=None
+            data={
+                "error": str(e),
+                "is_nsfw_detected": False
+            }
         )
 
 
