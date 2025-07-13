@@ -168,6 +168,16 @@ async def edit_image(request: ImageEditRequest):
             message="Image edited successfully.",
             data={"asset_urls": asset_urls}
         )
+    except openai.BadRequestError as e:
+        logger.error(f"OpenAI BadRequestError: {e}")
+        return BaseApiResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message="Invalid request parameters. Please check your input.",
+            data={
+                "error": str(e),
+                "is_nsfw_detected": e.code == "moderation_blocked"
+            }
+        )
 
     except Exception as e:
         logger.error(f"Error remixing image: {e}")
