@@ -56,16 +56,24 @@ async def create_zip(image_data: ZipRequest):
                     image_filename = f"image_{index:04d}.webp"
                     zip_file.writestr(image_filename, response.content)
 
-                    # Generate and save description
-                    description = await image_to_description(
-                        str(url),
-                        image_data.caption,
-                        image_data.focus_entity,
-                        image_data.trigger_word,
-                    )
+                    # Use provided caption if available, otherwise generate it
+                    if image_data.image_urls_captions and index < len(
+                        image_data.image_urls_captions
+                    ):
+                        description = image_data.image_urls_captions[index]
+                        logger.info(f"Using provided caption for image {index}")
+                    else:
+                        description = await image_to_description(
+                            str(url),
+                            image_data.caption,
+                            image_data.focus_entity,
+                            image_data.trigger_word,
+                        )
+                        logger.info(f"Generated caption for image {index}")
+
+                    # Save description
                     text_filename = f"image_{index:04d}.txt"
                     zip_file.writestr(text_filename, description.encode())
-
                     logger.info(f"Saved description in {text_filename}")
 
             except Exception as e:

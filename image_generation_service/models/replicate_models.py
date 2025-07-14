@@ -240,3 +240,5 @@ class ZipRequest(BaseModel):
         None, description="Focus instruction for image descriptions"
     )
     trigger_word: Optional[str] = Field(None, description="Trigger word for LoRA")
+
+    image_urls_captions: Optional[List[str]] = None
