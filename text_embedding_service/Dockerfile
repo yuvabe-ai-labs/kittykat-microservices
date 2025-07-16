@@ -11,16 +11,16 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Ensure wget is available for downloading the model
 RUN apt-get update && apt-get install -y wget && apt-get clean
 
-# Download the ONNX model file directly and save it in the desired path
+# Create the model directory and download the ONNX model file
 RUN mkdir -p /app/services/onnx_clip/data && \
-    wget -O /app/services/onnx_clip/data/clip_text_model_vitb32.onnx "https://storage.cloud.google.com/embedding_model_1/clip_text_model_vitb32.onnx/clip_text_model_vitb32.onnx"
+    wget -O /app/services/onnx_clip/data/clip_text_model_vitb32.onnx \
+    "https://storage.googleapis.com/embedding_model_1/clip_text_model_vitb32.onnx"
 
 # Set environment variables (optional)
-ENV MODEL_PATH="/app/services/onnx_clip/data/clip_image_model_vitb32.onnx"
+ENV MODEL_PATH="/app/services/onnx_clip/data/clip_text_model_vitb32.onnx"
 
-# Copy the application code
+# Copy the rest of the application code
 COPY . .
-
 # Expose the application port
 #EXPOSE 8000
 
