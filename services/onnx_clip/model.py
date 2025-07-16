@@ -46,12 +46,14 @@ class OnnxClip:
         """
         allowed_models = ["ViT-B/32", "RN50"]
         if model not in allowed_models:
-            raise ValueError(f"`model` must be in {allowed_models}. Got {model}.")
+            raise ValueError(
+                f"`model` must be in {allowed_models}. Got {model}.")
         if model == "ViT-B/32":
             self.embedding_size = 512
         elif model == "RN50":
             self.embedding_size = 1024
-        self.text_model = self._load_models(model, silent_download, cache_dir=cache_dir)
+        self.text_model = self._load_models(
+            model, silent_download, cache_dir=cache_dir)
         self._tokenizer = Tokenizer()
         self._batch_size = batch_size
 
@@ -81,7 +83,8 @@ class OnnxClip:
             # IMAGE_MODEL_FILE = "clip_image_model_rn50.onnx"
             TEXT_MODEL_FILE = "clip_text_model_rn50.onnx"
         else:
-            raise ValueError(f"Unexpected model {model}. No `.onnx` file found.")
+            raise ValueError(
+                f"Unexpected model {model}. No `.onnx` file found.")
         if cache_dir is None:
             base_dir = os.path.dirname(os.path.abspath(__file__))
             cache_dir = os.path.join(base_dir, "data")
@@ -106,31 +109,34 @@ class OnnxClip:
                     path,
                 )
         except Exception:
-            s3_url = f"https://lakera-clip.s3.eu-west-1.amazonaws.com/{os.path.basename(path)}"
+            # Use GCS public download URL directly
+            gcs_url = "https://storage.googleapis.com/embedding_model_1/clip_text_model_vitb32.onnx"
+
             if not silent:
                 logging.info(
                     f"The model file ({path}) doesn't exist "
-                    f"or it is invalid. Downloading it from the public S3 "
-                    f"bucket: {s3_url}."  # noqa: E501
+                    f"or is invalid. Downloading it from public GCS bucket: {gcs_url}."
                 )
 
-            # Download from S3
-            # Saving to a temporary file first to avoid corrupting the file
-            temporary_filename = Path(path).with_name(os.path.basename(path) + ".part")
+            # Temporary file to avoid corrupting on interruption
+            temporary_filename = Path(path).with_name(
+                os.path.basename(path) + ".part")
 
-            # Create any missing directories in the path
+            # Ensure parent directories exist
             temporary_filename.parent.mkdir(parents=True, exist_ok=True)
 
-            with requests.get(s3_url, stream=True) as r:
+            # Download from GCS
+            with requests.get(gcs_url, stream=True) as r:
                 r.raise_for_status()
                 with open(temporary_filename, "wb") as f:
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
                     f.flush()
-            # Finally move the temporary file to the correct location
+
+            # Rename to final destination
             temporary_filename.rename(path)
 
-            # `providers` need to be set explicitly since ORT 1.9
+            # Load the model
             return ort.InferenceSession(path, providers=ort.get_available_providers())
 
     def get_text_embeddings(
@@ -156,7 +162,8 @@ class OnnxClip:
         else:
             embeddings = []
             for batch in to_batches(texts, self._batch_size):
-                embeddings.append(self.get_text_embeddings(batch, with_batching=False))
+                embeddings.append(self.get_text_embeddings(
+                    batch, with_batching=False))
 
             if not embeddings:
                 return self._get_empty_embedding()
