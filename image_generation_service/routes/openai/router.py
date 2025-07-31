@@ -78,7 +78,8 @@ async def generate_image(
             status_code=status.HTTP_200_OK,
             message="Image generated successfully.",
             data={
-                "asset_urls": asset_urls
+                "asset_urls": asset_urls, "usage": result.usage.model_dump()
+                if result.usage else None
             }
         )
     except openai.BadRequestError as e:
@@ -166,7 +167,10 @@ async def edit_image(request: ImageEditRequest):
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
             message="Image edited successfully.",
-            data={"asset_urls": asset_urls}
+            data={
+                "asset_urls": asset_urls, "usage": result.usage.model_dump()
+                if result.usage else None
+            }
         )
     except openai.BadRequestError as e:
         logger.error(f"OpenAI BadRequestError: {e}")
@@ -238,13 +242,27 @@ async def vton_image(request: VirtualTryOnRequest):
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
             message="Virtual try on image generated successfully.",
-            data={"asset_urls": asset_urls}
+            data={
+                "asset_urls": asset_urls, "usage": result.usage.model_dump()
+                if result.usage else None
+            }
+        )
+
+    except openai.BadRequestError as e:
+        logger.error(f"OpenAI BadRequestError: {e}")
+        return BaseApiResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            message="Invalid request parameters. Please check your input.",
+            data={
+                "error": str(e),
+                "is_nsfw_detected": e.code == "moderation_blocked"
+            }
         )
 
     except Exception as e:
-        logger.error(f"Error generating VTON image: {e}")
+        logger.error(f"Error remixing image: {e}")
         return BaseApiResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
-            message="An error occurred while generating the VTON image.",
+            message="An error occurred while editing the image.",
             data=None
         )
