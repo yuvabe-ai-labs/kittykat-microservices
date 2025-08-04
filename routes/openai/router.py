@@ -19,6 +19,7 @@ async def generate_image(
     """
     Generate an image using OpenAI's image generation API.
     """
+    # print(f"Received image generation request: {request.model_dump()}")
 
     try:
         # Reference images
@@ -72,6 +73,8 @@ async def generate_image(
                 type=request.parameters.output_format
             )
 
+            # print(f"Generated image URL: {url}")
+
             asset_urls.append(url)
 
         return BaseApiResponse(
@@ -107,6 +110,7 @@ async def generate_image(
 
 @router.post("/edit", response_model=BaseApiResponse)
 async def edit_image(request: ImageEditRequest):
+    # print(f"Received image edit request: {request.model_dump()}")
     try:
         # Mask image
         masked_image = ImageService.url_to_mask_file_safe(
@@ -161,6 +165,8 @@ async def edit_image(request: ImageEditRequest):
                 prefix=prefix,
                 type=request.parameters.output_format
             )
+
+            # print(f"Edited image URL: {url}")
 
             asset_urls.append(url)
 
