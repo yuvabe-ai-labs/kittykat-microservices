@@ -32,7 +32,7 @@ class ImageService:
             raise e
 
     @staticmethod
-    def url_to_file_safe(url: str) -> Optional[BytesIO]:
+    def url_to_file_safe(url: str):
         try:
             response = requests.get(url, timeout=30)
             response.raise_for_status()
@@ -51,9 +51,21 @@ class ImageService:
                     f"Unsupported extension: {ext}. Defaulting to .png")
                 filename = "file.png"
 
-            file_like = BytesIO(response.content)
-            file_like.name = filename
-            return file_like
+            file_content_type = response.headers.get(
+                "Content-Type", "").lower()
+            if file_content_type not in ["image/png", "image/jpeg", "image/webp"]:
+                logger.warning(
+                    f"Invalid or missing content-type: {file_content_type}. Forcing image/png"
+                )
+                file_content_type = "image/png"
+
+            file_content = BytesIO(response.content)
+            file = (
+                filename,
+                file_content,
+                file_content_type
+            )
+            return file
 
         except requests.RequestException as e:
             logger.info(f"Failed to download {url}: {e}")
