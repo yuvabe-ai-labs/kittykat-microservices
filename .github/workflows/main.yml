@@ -3,6 +3,7 @@ name: Deploy service
 on:
   push:
     branches:
+      - beta
       - development
       - staging
       - main
@@ -19,7 +20,7 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  STAGE_TYPE: ${{ contains(github.ref, 'main') && 'prod' || contains(github.ref, 'staging') && 'stg' || 'dev' }}
+  STAGE_TYPE: ${{ contains(github.ref, 'main') && 'prod' || contains(github.ref, 'staging') && 'stg' || contains(github.ref, 'beta') && 'beta' || 'dev' }}
 
 jobs:
   update-matrix:
@@ -127,7 +128,7 @@ jobs:
             gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars PINTEREST_API_TOKEN=${{ secrets.PINTEREST_API_TOKEN }}
           elif [[ "${{ matrix.path }}" == *"image_generation_service"* ]]; then
             echo "Deploying image_generation_service with REPLICATE_API_KEY, FALAI_API_KEY, and FASHN_API_KEY"
-            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }},FALAI_API_KEY=${{ secrets.FALAI_API_KEY }},FASHN_API_KEY=${{ secrets.FASHN_API_KEY }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+            gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }},FALAI_API_KEY=${{ secrets.FALAI_API_KEY }},FASHN_API_KEY=${{ secrets.FASHN_API_KEY }},OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }},FREEPIK_API_KEY=${{ secrets.FREEPIK_API_KEY }}
           elif [[ "${{ matrix.path }}" == *"video_generation_service"* ]]; then  # Add this condition
             echo "Deploying video_generation_service with REPLICATE_API_KEY"
             gcloud run deploy ${{ env.SERVICE_NAME }} $deploy_common --update-env-vars REPLICATE_API_KEY=${{ secrets.REPLICATE_API_KEY }}
