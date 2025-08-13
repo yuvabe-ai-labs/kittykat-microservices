@@ -3,6 +3,7 @@ name: Deploy service
 on:
   push:
     branches:
+      - beta
       - development
       - staging
       - main
@@ -19,7 +20,7 @@ on:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  STAGE_TYPE: ${{ contains(github.ref, 'main') && 'prod' || contains(github.ref, 'staging') && 'stg' || 'dev' }}
+  STAGE_TYPE: ${{ contains(github.ref, 'main') && 'prod' || contains(github.ref, 'staging') && 'stg' || contains(github.ref, 'beta') && 'beta' || 'dev' }}
 
 jobs:
   update-matrix:
