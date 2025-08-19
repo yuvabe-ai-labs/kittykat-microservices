@@ -46,6 +46,6 @@ async def upscale_image(request: ImageUpscaleRequest):
         logger.error(f"Unexpected error: {e}")
         return BaseApiResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            message="An error occurred while starting the image upscale task.",
+            message="An error occurred while starting the image upscale task",
             data={"error": str(e)}
         )
