@@ -29,6 +29,7 @@ class ImageGenerationRequest(BaseModel):
     reference_images: Optional[List[str]] = None
     bucket: str
     bucket_path: str
+    file_name: str
 
 
 class ImageEditRequest(BaseModel):
@@ -40,6 +41,7 @@ class ImageEditRequest(BaseModel):
     parameters: OpenAIImageGenerationParameters
     bucket: str
     bucket_path: str
+    file_name: str
 
     @field_validator("reference_images")
     def validate_reference_images_max_length(cls, v):
@@ -56,3 +58,4 @@ class VirtualTryOnRequest(BaseModel):
     parameters: OpenAIImageGenerationParameters
     bucket: str
     bucket_path: str
+    file_name: str
