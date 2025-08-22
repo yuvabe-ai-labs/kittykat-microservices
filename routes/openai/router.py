@@ -63,8 +63,10 @@ async def generate_image(
             if not image_base64:
                 continue
 
-            filename = f"{shortuuid.uuid()}.{request.parameters.output_format or 'webp'}"
+            filename = f"{request.file_name}-{shortuuid.uuid()[:8]}.{request.parameters.output_format or 'webp'}"
             prefix = f"{request.bucket_path}/{filename}"
+
+            print("prefix", prefix)
 
             url = ImageService.upload_base64_image_to_bucket(
                 image_base64=image_base64,
@@ -74,6 +76,8 @@ async def generate_image(
             )
 
             # print(f"Generated image URL: {url}")
+
+            print("Generated image URL", url)
 
             asset_urls.append(url)
 
@@ -156,7 +160,7 @@ async def edit_image(request: ImageEditRequest):
             if not image_base64:
                 continue
 
-            filename = f"{shortuuid.uuid()}.{request.parameters.output_format or 'webp'}"
+            filename = f"{request.file_name}-{shortuuid.uuid()[:8]}.{request.parameters.output_format or 'webp'}"
             prefix = f"{request.bucket_path}/{filename}"
 
             url = ImageService.upload_base64_image_to_bucket(
@@ -233,7 +237,7 @@ async def vton_image(request: VirtualTryOnRequest):
             if not image_base64:
                 continue
 
-            filename = f"{shortuuid.uuid()}.{request.parameters.output_format or 'webp'}"
+            filename = f"{request.file_name}-{shortuuid.uuid()[:8]}.{request.parameters.output_format or 'webp'}"
             prefix = f"{request.bucket_path}/{filename}"
 
             url = ImageService.upload_base64_image_to_bucket(
