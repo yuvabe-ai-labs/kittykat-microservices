@@ -2,9 +2,9 @@ from typing import Iterable
 from byteplussdkarkruntime import Ark
 
 from byteplussdkarkruntime.types.content_generation.create_task_content_param import CreateTaskContentParam
-from video_generation_service.config.settings import config
-from video_generation_service.routes.byteplus.models import BytePlusVideoGenerationRequest
-from video_generation_service.utils.logger import logger
+from config.settings import config
+from routes.byteplus.models import BytePlusVideoGenerationRequest
+from utils.logger import logger
 
 
 class BytePlusVideoGenerationService:

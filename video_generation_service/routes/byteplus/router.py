@@ -1,10 +1,10 @@
 
 from fastapi import APIRouter
 
-from video_generation_service.routes.byteplus.models import BytePlusVideoGenerationRequest
-from video_generation_service.routes.byteplus.service import BytePlusVideoGenerationService
-from video_generation_service.utils.utils import BaseApiResponse
-from video_generation_service.utils.logger import logger
+from routes.byteplus.models import BytePlusVideoGenerationRequest
+from routes.byteplus.service import BytePlusVideoGenerationService
+from utils.utils import BaseApiResponse
+from utils.logger import logger
 
 
 router = APIRouter(prefix="/byteplus")
