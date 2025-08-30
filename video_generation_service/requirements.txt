@@ -3,3 +3,5 @@ replicate
 requests
 google-cloud-storage
 aiohttp
+pydantic-settings
+byteplus-python-sdk-v2

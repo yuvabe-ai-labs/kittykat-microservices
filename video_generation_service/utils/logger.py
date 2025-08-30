@@ -1,8 +1,16 @@
 from logging.config import dictConfig
 import logging
-from video_generation_service.config.settings import config
+import os
+from dotenv import load_dotenv
 
+# Load environment variables from the .env file
+load_dotenv(override=True)
 
+# Fetch the stage type from environment variables
+# Default to 'dev' if STAGE_TYPE is not set
+STAGE_TYPE = os.getenv("STAGE_TYPE", "dev")
+
+# Logging configuration
 LOGGING_CONFIG = {
     "version": 1,
     "disable_existing_loggers": False,
@@ -37,5 +45,5 @@ def setup_logging():
 
 # Exported logger instance
 setup_logging()
-logger_name = f"platform-services-video-gen-{config.STAGE_TYPE}"
+logger_name = f"platform-video-generation-service-{STAGE_TYPE}"
 logger = logging.getLogger(logger_name)
