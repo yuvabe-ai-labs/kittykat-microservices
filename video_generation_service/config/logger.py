@@ -1,6 +1,6 @@
 from logging.config import dictConfig
 import logging
-from video_generation_service.config.settings import config
+from config.settings import config
 
 
 LOGGING_CONFIG = {
