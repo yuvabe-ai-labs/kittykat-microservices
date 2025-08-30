@@ -5,6 +5,10 @@ from pydantic import BaseModel, Field, HttpUrl, field_serializer
 class BaseParams(BaseModel):
     webhook_url: HttpUrl
 
+    @field_serializer("webhook_url", when_used="always")
+    def serialize_webhook_url(self, v: HttpUrl, _info):
+        return str(v)
+
 
 class Seedance_1_0_Lite_I2V_Params(BaseParams):
     prompt: str = Field(
@@ -15,6 +19,7 @@ class Seedance_1_0_Lite_I2V_Params(BaseParams):
         description="The URL of the first frame image."
     )
     last_frame: Optional[HttpUrl] = Field(
+        default=None,
         description="The URL of the last frame image."
     )
     resolution: Literal["480p", "720p", "1080p"] = Field(
@@ -56,8 +61,12 @@ class Seedance_1_0_Lite_I2V_Params(BaseParams):
         description="Specifies whether to fix the camera."
     )
 
-    @field_serializer("first_frame")
-    def serialize_website(self, v: HttpUrl, _info):
+    @field_serializer("first_frame", when_used="always")
+    def serialize_fisrt_frame(self, v: HttpUrl, _info):
+        return str(v)
+
+    @field_serializer("last_frame", when_used="always")
+    def serialize_last_frame(self, v: HttpUrl, _info):
         return str(v)
 
 
@@ -108,8 +117,8 @@ class Seedance_1_0_Pro_Params(BaseParams):
         description="Specifies whether to fix the camera."
     )
 
-    @field_serializer("first_frame")
-    def serialize_website(self, v: HttpUrl, _info):
+    @field_serializer("first_frame", when_used="always")
+    def serialize_fisrt_frame(self, v: HttpUrl, _info):
         return str(v)
 
 
