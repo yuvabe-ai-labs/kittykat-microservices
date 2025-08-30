@@ -30,7 +30,6 @@ class BytePlusVideoGenerationService:
                     "text": f"{request.prompt} --rs {request.resolution} --rt {request.ratio} --dur {request.duration} --fps {request.framepersecond} --wm {str(request.watermark).lower()} --seed {request.seed} --cf {str(request.camerafixed).lower()}",
                 }
             )
-            print("boomer1")
             # Add first frame image
             content.append(
                 {
@@ -41,7 +40,6 @@ class BytePlusVideoGenerationService:
                     "role": "first_frame",
                 }
             )
-            print("boomer2")
 
             # Add last frame image if provided
             if request.model == "seedance-1-0-lite-i2v-250428" and request.last_frame:
@@ -55,14 +53,11 @@ class BytePlusVideoGenerationService:
                     }
                 )
 
-            print("boomer3")
             response = self.byteplus_client.content_generation.tasks.create(
                 callback_url=str(request.webhook_url),
                 model=request.model,
                 content=content
             )
-
-            print("boomer4")
 
             return response.id
         except Exception as e:
