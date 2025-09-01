@@ -19,7 +19,7 @@ async def generate_image(
     try:
         byteplus_service = BytePlusService()
 
-        data = await byteplus_service.generate_image(request=request)
+        data = byteplus_service.generate_image(request=request)
 
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
