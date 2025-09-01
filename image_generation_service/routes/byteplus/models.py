@@ -1,9 +1,9 @@
-from typing import Literal, Optional, Union
+from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 
 class Seeddream_3_Params(BaseModel):
-    model: Literal["seeddream-3"]
+    model: Literal["seedream-3-0-t2i-250415"]
     prompt: str
     size: Literal[
         "1024x1024", "864x1152", "1152x864", "1280x720", "720x1280", "832x1248", "1248x832", "1512x648"
@@ -17,7 +17,7 @@ class Seeddream_3_Params(BaseModel):
         ge=1.0,
         le=10.0,
     )
-    seed = Optional[int] = Field(
+    seed: Optional[int] = Field(
         default=-1,
         description="Seed for random number generator. Use -1 for random seed.",
     )
@@ -31,7 +31,7 @@ BytePlusImageGenerationRequest = Union[Seeddream_3_Params]
 
 
 class BytePlusImageGenerationResponse(BaseModel):
-    asset_urls: Optional[str] = Field(
+    asset_urls: Optional[List[str]] = Field(
         default=None,
         description="URL of the generated image.",
     )
