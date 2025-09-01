@@ -26,15 +26,15 @@ class BytePlusService:
 
         if result.data is None or len(result.data) == 0:
             return BytePlusImageGenerationResponse(
-                assets_urls=None,
+                asset_urls=None,
                 error=result.error.model_dump() if result.error else "Unknown error",
                 is_nsfw_detected=result.error.code in BYTEPLUS_NFSW_ERROR_CODES if result.error else False,
                 model_response=result.model_dump()
             )
 
         return BytePlusImageGenerationResponse(
-            assets_urls=[result.data[0].url],
+            asset_urls=[result.data[0].url],
             error=None,
             is_nsfw_detected=False,
             model_response=result.model_dump()
-        ).model_dump()
+        )
