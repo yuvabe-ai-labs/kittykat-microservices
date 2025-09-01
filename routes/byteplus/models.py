@@ -31,7 +31,7 @@ BytePlusImageGenerationRequest = Union[Seeddream_3_Params]
 
 
 class BytePlusImageGenerationResponse(BaseModel):
-    image_url: Optional[str] = Field(
+    asset_urls: Optional[str] = Field(
         default=None,
         description="URL of the generated image.",
     )
