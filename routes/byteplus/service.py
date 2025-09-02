@@ -2,7 +2,7 @@ import os
 from byteplussdkarkruntime import Ark
 from config.logger import logger
 from routes.byteplus.constants import BYTEPLUS_NFSW_ERROR_CODES
-from routes.byteplus.models import BytePlusImageGenerationRequest, BytePlusImageGenerationResponse
+from routes.byteplus.models import BytePlusImageGenerationRequest, BytePlusImageResponse, BytePlusImageEditRequest
 
 
 class BytePlusService:
@@ -11,7 +11,7 @@ class BytePlusService:
             api_key=os.environ.get("BYTEPLUS_API_KEY")
         )
 
-    def generate_image(self, request: BytePlusImageGenerationRequest) -> BytePlusImageGenerationResponse:
+    def generate_image(self, request: BytePlusImageGenerationRequest) -> BytePlusImageResponse:
         result = self.byteplus_client.images.generate(
             model=request.model,
             prompt=request.prompt,
@@ -26,14 +26,44 @@ class BytePlusService:
             f"BytePlus image generation result:  {result.model_dump()}")
 
         if result.data is None or len(result.data) == 0:
-            return BytePlusImageGenerationResponse(
+            return BytePlusImageResponse(
                 asset_urls=None,
                 error=result.error.model_dump() if result.error else "Unknown error",
                 is_nsfw_detected=result.error.code in BYTEPLUS_NFSW_ERROR_CODES if result.error else False,
                 model_response=result.model_dump()
             )
 
-        return BytePlusImageGenerationResponse(
+        return BytePlusImageResponse(
+            asset_urls=[result.data[0].url],
+            error=None,
+            is_nsfw_detected=False,
+            model_response=result.model_dump()
+        )
+
+    def edit_image(self, request: BytePlusImageEditRequest) -> BytePlusImageResponse:
+        result = self.byteplus_client.images.generate(
+            model=request.model,
+            prompt=request.prompt,
+            size=request.size,
+            guidance_scale=request.guidance_scale,
+            seed=request.seed,
+            watermark=request.watermark,
+            response_format="url",
+            image=request.image
+        )
+
+        logger.info(
+            f"BytePlus image edit result:  {result.model_dump()}")
+
+        if result.data is None or len(result.data) == 0:
+            return BytePlusImageResponse(
+                asset_urls=None,
+                error=result.error.model_dump() if result.error else "Unknown error",
+                is_nsfw_detected=result.error.code in BYTEPLUS_NFSW_ERROR_CODES if result.error else False,
+                model_response=result.model_dump()
+            )
+
+        return BytePlusImageResponse(
             asset_urls=[result.data[0].url],
             error=None,
             is_nsfw_detected=False,
