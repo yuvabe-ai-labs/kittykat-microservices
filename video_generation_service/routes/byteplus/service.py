@@ -30,33 +30,28 @@ class BytePlusVideoGenerationService:
                 }
             )
 
-            # Add first frame image
-            if request.first_frame:
-                content.append(
-                    {
-                        "type": "image_url",
-                        "image_url": {
-                            "url": str(request.first_frame),
-                        },
-                        "role": "first_frame",
-                    }
-                )
+            roles = ["first_frame", "last_frame"]
 
-            # Add last frame image if provided
-            if request.model == "seedance-1-0-lite-i2v-250428" and request.last_frame:
-                content.append(
-                    {
+            for role, frame in zip(roles, [request.first_frame, request.last_frame if hasattr(request, "last_frame") else None]):
+                if frame:
+                    item = {
                         "type": "image_url",
-                        "image_url": {
-                            "url": str(request.last_frame),
-                        },
-                        "role": "last_frame",
+                        "image_url": {"url": str(frame)},
                     }
-                )
+
+                    if request.model == "seedance-1-0-lite-i2v-250428":
+                        item["role"] = role if request.first_frame else "first_frame"
+
+                    content.append(item)
+
+            # Subtracting 1 for the text prompt
+            no_of_reference_images = len(content) - 1
+            model = request.model if no_of_reference_images > 0 else request.model.replace(
+                "i2v", "t2v")
 
             response = self.byteplus_client.content_generation.tasks.create(
                 callback_url=str(request.webhook_url),
-                model=request.model,
+                model=model,
                 content=content
             )
 
