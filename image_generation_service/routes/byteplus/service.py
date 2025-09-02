@@ -22,7 +22,8 @@ class BytePlusService:
             response_format="url",
         )
 
-        logger.info(f"BytePlus image generation result: {result.model_dump()}")
+        logger.info(
+            f"BytePlus image generation result:  {result.model_dump()}")
 
         if result.data is None or len(result.data) == 0:
             return BytePlusImageGenerationResponse(
