@@ -20,7 +20,6 @@ class BytePlusVideoGenerationService:
         Webhook will be called when the task is initiated.
         """
         try:
-
             content: Iterable[CreateTaskContentParam] = []
 
             # Add text prompt
