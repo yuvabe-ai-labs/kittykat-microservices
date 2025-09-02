@@ -29,16 +29,18 @@ class BytePlusVideoGenerationService:
                     "text": f"{request.prompt} --rs {request.resolution} --rt {request.ratio} --dur {request.duration} --fps {request.framepersecond} --wm {str(request.watermark).lower()} --seed {request.seed} --cf {str(request.camerafixed).lower()}",
                 }
             )
+
             # Add first frame image
-            content.append(
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": str(request.first_frame),
-                    },
-                    "role": "first_frame",
-                }
-            )
+            if request.first_frame:
+                content.append(
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": str(request.first_frame),
+                        },
+                        "role": "first_frame",
+                    }
+                )
 
             # Add last frame image if provided
             if request.model == "seedance-1-0-lite-i2v-250428" and request.last_frame:

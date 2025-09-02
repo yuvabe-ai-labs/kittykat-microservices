@@ -15,7 +15,8 @@ class Seedance_1_0_Lite_I2V_Params(BaseParams):
         description="The text prompt to guide the video generation."
     )
     model: Literal["seedance-1-0-lite-i2v-250428"]
-    first_frame: HttpUrl = Field(
+    first_frame: Optional[HttpUrl] = Field(
+        default=None,
         description="The URL of the first frame image."
     )
     last_frame: Optional[HttpUrl] = Field(
@@ -75,7 +76,8 @@ class Seedance_1_0_Pro_Params(BaseParams):
         description="The text prompt to guide the video generation."
     )
     model: Literal["seedance-1-0-pro-250528"]
-    first_frame: HttpUrl = Field(
+    first_frame: Optional[HttpUrl] = Field(
+        default=None,
         description="The URL of the first frame image."
     )
     resolution: Literal["480p", "720p", "1080p"] = Field(
