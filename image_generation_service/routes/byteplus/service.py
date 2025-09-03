@@ -3,6 +3,7 @@ from byteplussdkarkruntime import Ark
 from config.logger import logger
 from routes.byteplus.constants import BYTEPLUS_NFSW_ERROR_CODES
 from routes.byteplus.models import BytePlusImageGenerationRequest, BytePlusImageResponse, BytePlusImageEditRequest
+from routes.byteplus.constants import model_content_filters
 
 
 class BytePlusService:
@@ -12,8 +13,22 @@ class BytePlusService:
         )
 
     def generate_image(self, request: BytePlusImageGenerationRequest) -> BytePlusImageResponse:
+        model = request.model
+
+        if request.content_filter_disabled:
+            logger.info(
+                "Changing model configuration: content moderation disabled")
+
+            filtered_model = model_content_filters.get(model, None)
+
+            if filtered_model:
+                model = filtered_model
+                logger.info(f"Model changed to {model}")
+            else:
+                logger.info(f"No content filter found for model {model}")
+
         result = self.byteplus_client.images.generate(
-            model=request.model,
+            model=model,
             prompt=request.prompt,
             size=request.size,
             guidance_scale=request.guidance_scale,
@@ -41,8 +56,21 @@ class BytePlusService:
         )
 
     def edit_image(self, request: BytePlusImageEditRequest) -> BytePlusImageResponse:
+        model = request.model
+        if request.content_filter_disabled:
+            logger.info(
+                "Changing model configuration: content moderation disabled")
+
+            filtered_model = model_content_filters.get(model, None)
+
+            if filtered_model:
+                model = filtered_model
+                logger.info(f"Model changed to {model}")
+            else:
+                logger.info(f"No content filter found for model {model}")
+
         result = self.byteplus_client.images.generate(
-            model=request.model,
+            model=model,
             prompt=request.prompt,
             size=request.size,
             guidance_scale=request.guidance_scale,

@@ -2,7 +2,14 @@ from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 
 
-class Seeddream_3_Params(BaseModel):
+class BaseParams(BaseModel):
+    content_filter_disabled: Optional[bool] = Field(
+        default=False,
+        description="Whether to disable content filtering. Default is False.",
+    )
+
+
+class Seeddream_3_Params(BaseParams):
     model: Literal["seedream-3-0-t2i-250415"]
     prompt: str
     size: Literal[
@@ -27,7 +34,7 @@ class Seeddream_3_Params(BaseModel):
     )
 
 
-class SeedEdit_3_Params(BaseModel):
+class SeedEdit_3_Params(BaseParams):
     model: Literal["seededit-3-0-i2i-250628"]
     prompt: str
     image: str = Field(
