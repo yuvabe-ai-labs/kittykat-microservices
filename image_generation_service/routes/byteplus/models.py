@@ -35,10 +35,10 @@ class SeedEdit_3_Params(BaseModel):
         description="Base64 encoded image or image URL to be edited.",
     )
     size: Literal[
-        "1024x1024", "864x1152", "1152x864", "1280x720", "720x1280", "832x1248", "1248x832", "1512x648"
+        "adaptive"
     ] = Field(
-        default="1024x1024",
-        description="Size of the generated image. Options are '512x512', '768x768', '1024x1024'.",
+        default="adaptive",
+        description="Size of the generated image. Options are 'adaptive' for noe.",
     )
     guidance_scale: float = Field(
         default=2.5,
