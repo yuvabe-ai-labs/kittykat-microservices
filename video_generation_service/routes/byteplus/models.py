@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field, HttpUrl, field_serializer
 
 class BaseParams(BaseModel):
     webhook_url: HttpUrl
+    content_filter_disabled: Optional[bool] = Field(
+        default=False,
+        description="Whether to disable content filtering. Default is False."
+    )
 
     @field_serializer("webhook_url", when_used="always")
     def serialize_webhook_url(self, v: HttpUrl, _info):

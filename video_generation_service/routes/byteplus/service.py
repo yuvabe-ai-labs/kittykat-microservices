@@ -5,6 +5,7 @@ from byteplussdkarkruntime.types.content_generation.create_task_content_param im
 from config.settings import config
 from routes.byteplus.models import BytePlusVideoGenerationRequest
 from utils.logger import logger
+from .constants import model_content_filters
 
 
 class BytePlusVideoGenerationService:
@@ -48,6 +49,18 @@ class BytePlusVideoGenerationService:
             no_of_reference_images = len(content) - 1
             model = request.model if no_of_reference_images > 0 else request.model.replace(
                 "i2v", "t2v")
+
+            if request.content_filter_disabled:
+                logger.info(
+                    "Changing model configuration: content moderation disabled")
+
+                filtered_model = model_content_filters.get(model, None)
+
+                if filtered_model:
+                    model = filtered_model
+                    logger.info(f"Model changed to {model}")
+                else:
+                    logger.info(f"No content filter found for model {model}")
 
             response = self.byteplus_client.content_generation.tasks.create(
                 callback_url=str(request.webhook_url),
