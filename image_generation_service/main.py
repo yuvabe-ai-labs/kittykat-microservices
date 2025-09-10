@@ -10,6 +10,7 @@ from routes.replicate.predictions.router import router as replicate_predictions_
 from routes.openai.router import router as openai_router
 from routes.magnific.router import router as magnific_router
 from routes.byteplus.router import router as byteplus_router
+from routes.gemini.router import router as gemini_router
 
 app = FastAPI()
 
@@ -32,9 +33,11 @@ app.include_router(fashn_image_generator_router,
                    tags=["Fashn Ai Image Generator"])
 app.include_router(replicate_model_trainer_router,
                    tags=["Replicate Model Trainer"])
+
 app.include_router(replicate_models_router, tags=["Replicate Models"])
 app.include_router(replicate_predictions_router,
                    tags=["Replicate Predictions"])
 app.include_router(openai_router, tags=["OpenAI Image Generation"])
 app.include_router(magnific_router, tags=["Magnific Image Upscaling"])
 app.include_router(byteplus_router, tags=["BytePlus Image Generation"])
+app.include_router(gemini_router, tags=["Gemini Image Generation"])
