@@ -65,22 +65,3 @@ class SeedEdit_3_Params(BaseParams):
 
 BytePlusImageGenerationRequest = Union[Seeddream_3_Params]
 BytePlusImageEditRequest = Union[SeedEdit_3_Params]
-
-
-class BytePlusImageResponse(BaseModel):
-    asset_urls: Optional[List[str]] = Field(
-        default=None,
-        description="URL of the generated image.",
-    )
-    error: Optional[Union[str, dict]] = Field(
-        default=None,
-        description="Error message if the image generation failed.",
-    )
-    is_nsfw_detected: bool = Field(
-        default=False,
-        description="Indicates if NSFW content was detected in the prompt.",
-    )
-    model_response: Optional[dict] = Field(
-        default=None,
-        description="Raw response from the BytePlus API.",
-    )

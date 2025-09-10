@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status
 from core.utils import BaseApiResponse
+from core.models import ImageResponse
 from config.logger import logger
 from .models import BytePlusImageGenerationRequest, BytePlusImageEditRequest
 from .service import BytePlusService
@@ -8,7 +9,7 @@ from .service import BytePlusService
 router = APIRouter(prefix="/byteplus", tags=["BytePlus"])
 
 
-@router.post("/generate", response_model=BaseApiResponse)
+@router.post("/generate", response_model=BaseApiResponse[ImageResponse])
 async def generate_image(
     request: BytePlusImageGenerationRequest
 ):
@@ -32,14 +33,14 @@ async def generate_image(
         return BaseApiResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             message="An error occurred while generating the image. Please try again later",
-            data={
-                "error": str(e),
-                "is_nsfw_detected": False
-            }
+            data=ImageResponse(
+                error=str(e),
+                is_nsfw_detected=False,
+            )
         )
 
 
-@router.post("/edit", response_model=BaseApiResponse)
+@router.post("/edit", response_model=BaseApiResponse[ImageResponse])
 async def generate_image(
     request: BytePlusImageEditRequest
 ):
@@ -63,8 +64,8 @@ async def generate_image(
         return BaseApiResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             message="An error occurred while edit the image. Please try again later",
-            data={
-                "error": str(e),
-                "is_nsfw_detected": False
-            }
+            data=ImageResponse(
+                error=str(e),
+                is_nsfw_detected=False,
+            )
         )
