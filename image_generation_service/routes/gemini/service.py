@@ -1,12 +1,17 @@
 import base64
 from io import BytesIO
+from typing import Union
+
 from config.env import config
-from PIL import Image
 from config.logger import logger
-from google import genai
-from google.genai.types import Content, Part
-from .models import GeminiImageGenerationRequest, GeminiImageEditRequest
 from core.models import ImageResponse
+from google import genai
+from google.genai.types import Content, Part, GenerateImagesConfig
+from PIL import Image
+
+from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
+                     GeminiImageGenerationRequest, Imagen4FastGenerateParams,
+                     Imagen4GenerateParams, Imagen4UltraGenerateParams)
 
 
 class GeminiService:
@@ -17,34 +22,12 @@ class GeminiService:
 
     def generate_image(self, request: GeminiImageGenerationRequest) -> ImageResponse:
         try:
-            contents = [
-                Content(role="user", parts=[Part.from_text(text=request.prompt)])]
+            match request.model:
+                case "gemini-2.5-flash-image-preview":
+                    return self.generate_image_with_multimodal(request)
 
-            if request.reference_images:
-                for image_url in request.reference_images:
-                    contents.append(Content(
-                        role="user",
-                        parts=[Part.inline_data(GeminiServiceUtils.convert_url_to_image_like(
-                            image_url))]
-                    ))
-
-            response = self.gemini_client.models.generate_content(
-                model=request.model,
-                contents=contents,
-            )
-
-            asset_base64s = []
-
-            for part in response.candidates[0].content.parts:
-                if part.inline_data is not None:
-                    data = part.inline_data.data
-                    b64_string = base64.b64encode(data).decode('utf-8')
-                    asset_base64s.append(b64_string)
-
-            return ImageResponse(
-                asset_base64s=asset_base64s,
-                model_response=response.to_json_dict()
-            )
+                case "imagen-4.0-generate-001" | "imagen-4.0-ultra-generate-001" | "imagen-4.0-fast-generate-001":
+                    return self.generate_image_with_imagen(request)
 
         except Exception as e:
             logger.error(f"Error generating image: {e}")
@@ -96,6 +79,60 @@ class GeminiService:
         except Exception as e:
             logger.error(f"Error editing image: {e}")
             raise e
+
+    def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview]) -> ImageResponse:
+        contents = [
+            Content(role="user", parts=[Part.from_text(text=request.prompt)])]
+
+        if request.reference_images:
+            for image_url in request.reference_images:
+                contents.append(Content(
+                    role="user",
+                    parts=[Part.inline_data(GeminiServiceUtils.convert_url_to_image_like(
+                        image_url))]
+                ))
+
+        response = self.gemini_client.models.generate_content(
+            model=request.model,
+            contents=contents,
+        )
+
+        asset_base64s = []
+
+        for part in response.candidates[0].content.parts:
+            if part.inline_data is not None:
+                data = part.inline_data.data
+                b64_string = base64.b64encode(data).decode('utf-8')
+                asset_base64s.append(b64_string)
+
+        return ImageResponse(
+            asset_base64s=asset_base64s,
+            model_response=response.to_json_dict()
+        )
+
+    def generate_image_with_imagen(self, request: Union[Imagen4FastGenerateParams,
+                                                        Imagen4GenerateParams, Imagen4UltraGenerateParams]) -> ImageResponse:
+        response = self.gemini_client.models.generate_images(
+            model=request.model,
+            prompt=request.prompt,
+            config=GenerateImagesConfig(
+                number_of_images=request.n,
+                aspect_ratio=request.aspect_ratio,
+                image_size=getattr(request, 'image_size', None)
+            )
+        )
+
+        asset_base64s = []
+
+        for image in response.generated_images:
+            data = image.image.image_bytes
+            b64_string = base64.b64encode(data).decode('utf-8')
+            asset_base64s.append(b64_string)
+
+        return ImageResponse(
+            asset_base64s=asset_base64s,
+            model_response=response.to_json_dict()
+        )
 
 
 class GeminiServiceUtils:
