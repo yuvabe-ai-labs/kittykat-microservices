@@ -37,10 +37,10 @@ class GeminiService:
         try:
             contents = [
                 Content(role="user", parts=[Part.from_text(text=request.prompt)])]
-            print("Added prompt part")
+
             contents.append(GeminiServiceUtils.convert_url_to_image_like(
                 request.base_image))
-            print("Added base image part")
+
             if request.reference_images:
                 for image_url in request.reference_images:
                     contents.append(Content(
@@ -73,7 +73,8 @@ class GeminiService:
 
             return ImageResponse(
                 asset_base64s=asset_base64s,
-                model_response=response.to_json_dict()
+                model_response=response.to_json_dict(),
+                model_usage=response.usage_metadata
             )
 
         except Exception as e:
@@ -86,11 +87,8 @@ class GeminiService:
 
         if request.reference_images:
             for image_url in request.reference_images:
-                contents.append(Content(
-                    role="user",
-                    parts=[Part.inline_data(GeminiServiceUtils.convert_url_to_image_like(
-                        image_url))]
-                ))
+                contents.append(
+                    GeminiServiceUtils.convert_url_to_image_like(image_url))
 
         response = self.gemini_client.models.generate_content(
             model=request.model,
@@ -107,7 +105,8 @@ class GeminiService:
 
         return ImageResponse(
             asset_base64s=asset_base64s,
-            model_response=response.to_json_dict()
+            model_response=response.to_json_dict(),
+            model_usage=response.usage_metadata
         )
 
     def generate_image_with_imagen(self, request: Union[Imagen4FastGenerateParams,
