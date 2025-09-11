@@ -1,8 +1,11 @@
-from typing import List, Optional, Union
+from typing import Generic, List, Optional, TypeVar, Union
 from pydantic import BaseModel, Field
 
 
-class ImageResponse(BaseModel):
+TUsage = TypeVar("TUsage")
+
+
+class ImageResponse(BaseModel, Generic[TUsage]):
     asset_urls: Optional[List[str]] = Field(
         default=None,
         description="Temporary URLs of the generated/edited image.",
@@ -26,4 +29,8 @@ class ImageResponse(BaseModel):
     model_response: Optional[dict] = Field(
         default=None,
         description="Raw response from the Model API.",
+    )
+    model_usage: Optional[TUsage] = Field(
+        default=None,
+        description="Usage details from the Model API, if webhook is available it is null.",
     )
