@@ -5,7 +5,7 @@ from .models import ImageUpscaleRequest
 from config.logger import logger
 from .service import ImageUpscaleService
 
-router = APIRouter(prefix="/maginific")
+router = APIRouter(prefix="/magnific")
 
 
 @router.post("/upscale", response_model=BaseApiResponse[ImageResponse])
