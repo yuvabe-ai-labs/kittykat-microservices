@@ -9,9 +9,10 @@ from google import genai
 from google.genai.types import Content, Part, GenerateImagesConfig
 from PIL import Image
 
+from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
                      GeminiImageGenerationRequest, Imagen4FastGenerateParams,
-                     Imagen4GenerateParams, Imagen4UltraGenerateParams)
+                     Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest)
 
 
 class GeminiService:
@@ -49,13 +50,11 @@ class GeminiService:
                             image_url)]
 
                     ))
-            print(f"Added reference image part ")
+
             response = self.gemini_client.models.generate_content(
                 model=request.model,
                 contents=contents,
             )
-
-            logger.info(f"Gemini edit image response: {response}")
 
             asset_base64s = []
 
@@ -65,12 +64,6 @@ class GeminiService:
                     b64_string = base64.b64encode(data).decode('utf-8')
                     asset_base64s.append(b64_string)
 
-            # Save the edited image to a file for verification
-            if asset_base64s:
-                with open("edited_image.png", "wb") as f:
-                    f.write(base64.b64decode(asset_base64s[0]))
-                logger.info("Edited image saved as edited_image.png")
-
             return ImageResponse(
                 asset_base64s=asset_base64s,
                 model_response=response.to_json_dict(),
@@ -79,6 +72,43 @@ class GeminiService:
 
         except Exception as e:
             logger.error(f"Error editing image: {e}")
+            raise e
+
+    def generate_vton_image(self, request: GeminiVirtualTryOnRequest) -> ImageResponse:
+        try:
+            prompt = VIRTUAL_TRY_ON_BASE_PROMPT
+
+            if request.prompt:
+                prompt += f"Additional instructions: {request.prompt}"
+
+            contents = [
+                Content(role="user", parts=[Part.from_text(text=prompt)])]
+            contents.append(GeminiServiceUtils.convert_url_to_image_like(
+                request.product_image))
+            contents.append(GeminiServiceUtils.convert_url_to_image_like(
+                request.model_image))
+
+            response = self.gemini_client.models.generate_content(
+                model=request.model,
+                contents=contents,
+            )
+
+            asset_base64s = []
+
+            for part in response.candidates[0].content.parts:
+                if part.inline_data is not None:
+                    data = part.inline_data.data
+                    b64_string = base64.b64encode(data).decode('utf-8')
+                    asset_base64s.append(b64_string)
+
+            return ImageResponse(
+                asset_base64s=asset_base64s,
+                model_response=response.to_json_dict(),
+                model_usage=response.usage_metadata
+            )
+
+        except Exception as e:
+            logger.error(f"Error generating virtual try-on image: {e}")
             raise e
 
     def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview]) -> ImageResponse:

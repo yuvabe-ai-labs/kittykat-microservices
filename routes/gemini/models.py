@@ -81,3 +81,10 @@ GeminiImageGenerationRequest = Union[Gemini_2_5_Flash_Image_Preview,
                                      Imagen4UltraGenerateParams,
                                      Imagen4FastGenerateParams]
 GeminiImageEditRequest = Union[Gemini_2_5_Flash_Image_Preview_Edit]
+
+
+class GeminiVirtualTryOnRequest(BaseModel):
+    model: Literal["gemini-2.5-flash-image-preview"]
+    prompt: Optional[str] = None
+    model_image: str
+    product_image: str
