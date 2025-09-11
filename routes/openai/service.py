@@ -65,7 +65,8 @@ class OpenAIService:
             return ImageResponse(
                 asset_base64s=asset_b64s,
                 model_response=result.model_dump(),
-                model_usage=result.usage
+                model_usage=result.usage.model_dump() if result.usage else None
+
             )
 
         except Exception as e:
@@ -124,7 +125,8 @@ class OpenAIService:
             return ImageResponse(
                 asset_base64s=asset_base64s,
                 model_response=result.model_dump(),
-                model_usage=result.usage
+                model_usage=result.usage.model_dump() if result.usage else None
+
             )
 
         except Exception as e:
@@ -164,7 +166,8 @@ class OpenAIService:
             return ImageResponse(
                 asset_base64s=asset_b64s,
                 model_response=result.model_dump(),
-                model_usage=result.usage
+                model_usage=result.usage.model_dump() if result.usage else None
+
             )
 
         except Exception as e:
