@@ -50,7 +50,8 @@ class BytePlusService:
 
         return ImageResponse(
             asset_urls=[result.data[0].url],
-            model_response=result.model_dump()
+            model_response=result.model_dump(),
+            model_usage=result.usage
         )
 
     def edit_image(self, request: BytePlusImageEditRequest) -> ImageResponse:
@@ -90,5 +91,6 @@ class BytePlusService:
 
         return ImageResponse(
             asset_urls=[result.data[0].url],
-            model_response=result.model_dump()
+            model_response=result.model_dump(),
+            model_usage=result.usage
         )
