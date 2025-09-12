@@ -77,7 +77,7 @@ async def generte_vton_image(request: GeminiVirtualTryOnRequest):
     try:
         gemini_service = GeminiService()
 
-        data = gemini_service.edit_image(request=request)
+        data = gemini_service.generate_vton_image(request=request)
 
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
