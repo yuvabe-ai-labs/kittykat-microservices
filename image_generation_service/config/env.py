@@ -24,4 +24,5 @@ class Config(BaseSettings):
 
 config = Config()
 
-logging.info(f"Loaded configuration for stage: {config.STAGE_TYPE}")
+logging.info(
+    f"Loaded image generation microservice configuration for stage: {config.STAGE_TYPE}")
