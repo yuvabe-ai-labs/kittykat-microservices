@@ -33,7 +33,6 @@ class Gemini_2_5_Flash_Image_Preview_Edit(BaseImageModel):
     )
     reference_images: Optional[List[str]] = Field(
         default=None,
-        min_length=1,
         max_length=2,
         description="List of URLs of reference images to guide the image generation.",
     )
