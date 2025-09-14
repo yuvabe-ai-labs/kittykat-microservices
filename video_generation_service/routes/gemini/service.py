@@ -31,6 +31,7 @@ class GeminiVideoGenerationService:
                     negative_prompt=getattr(request, "negative_prompt", None),
                     resolution=getattr(request, "resolution", None),
                     aspect_ratio=request.aspect_ratio,
+                    duration_seconds=request.duration
                 ),
                 source=GenerateVideosSourceDict(
                     prompt=request.prompt,

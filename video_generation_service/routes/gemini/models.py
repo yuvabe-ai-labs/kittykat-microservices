@@ -3,7 +3,10 @@ from pydantic import BaseModel, Field, HttpUrl, field_serializer, model_validato
 
 
 class BaseParams(BaseModel):
-    webhook_url: HttpUrl
+    webhook_url: Optional[HttpUrl] = Field(
+        default=None,
+        description="The URL to which the video generation results will be sent upon completion.",
+    )
 
     @field_serializer("webhook_url", when_used="always")
     def serialize_webhook_url(self, v: HttpUrl, _info):
@@ -14,6 +17,12 @@ class Veo3Params(BaseParams):
     model: Literal["veo-3.0-generate-001"]
     prompt: str = Field(
         description="The text prompt to guide the video generation."
+    )
+    duration: int = Field(
+        default=8,
+        ge=8,
+        le=8,
+        description="The duration of the output video in seconds."
     )
     negative_prompt: Optional[str] = Field(
         default=None,
@@ -51,6 +60,12 @@ class Veo2Params(BaseParams):
     model: Literal["veo-2.0-generate-001"]
     prompt: str = Field(
         description="The text prompt to guide the video generation."
+    )
+    duration: int = Field(
+        default=5,
+        ge=8,
+        le=5,
+        description="The duration of the output video in seconds."
     )
     negative_prompt: Optional[str] = Field(
         default=None,
