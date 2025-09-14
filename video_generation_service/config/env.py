@@ -13,5 +13,5 @@ class BaseConfig(BaseSettings):
         env_file=".env", env_file_encoding="utf-8")
 
 
-config = BaseConfig()
-logging.info(f"Loaded configuration for stage: {config.STAGE_TYPE}")
+env = BaseConfig()
+logging.info(f"Loaded configuration for stage: {env.STAGE_TYPE}")
