@@ -8,7 +8,10 @@ TUsage = TypeVar("TUsage")
 class VideoResponse(BaseModel, Generic[TUsage]):
     asset_urls: Optional[List[str]] = Field(
         default=None,
-        description="Temporary URLs of the generated videos.",
+        description=(
+            "Temporary URLs of the generated videos. "
+            "For Veo3, these are temporary Gemini API URLs that require auth. They should be resolved by the backend into public bucket URLs."
+        ),
     )
     webhook_url: Optional[str] = Field(
         default=None,
