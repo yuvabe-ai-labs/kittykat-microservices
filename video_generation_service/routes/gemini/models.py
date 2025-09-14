@@ -63,8 +63,8 @@ class Veo2Params(BaseParams):
     )
     duration: int = Field(
         default=5,
-        ge=8,
-        le=5,
+        ge=5,
+        le=8,
         description="The duration of the output video in seconds."
     )
     negative_prompt: Optional[str] = Field(

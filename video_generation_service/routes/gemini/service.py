@@ -20,7 +20,7 @@ class GeminiVideoGenerationService:
         try:
 
             if request.image:
-                image = GeminiServiceUtils.convert_url_to_image_like(
+                image = GeminiServiceUtils.convert_url_to_image_bytes(
                     str(request.image))
             else:
                 image = None
@@ -35,7 +35,10 @@ class GeminiVideoGenerationService:
                 ),
                 source=GenerateVideosSourceDict(
                     prompt=request.prompt,
-                    image=image
+                    image={
+                        "image_bytes": image,
+                        "mime_type": "image/png" if image else None,
+                    } if image else None,
                 )
             )
 
