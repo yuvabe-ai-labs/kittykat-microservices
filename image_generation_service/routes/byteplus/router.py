@@ -20,7 +20,11 @@ async def generate_image(
     try:
         byteplus_service = BytePlusService()
 
-        data = byteplus_service.generate_image(request=request)
+        if request.model == "seedream-4-0-250828":
+            data = byteplus_service.generate_image_with_seedream_4(
+                request=request)
+        else:
+            data = byteplus_service.generate_image(request=request)
 
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
