@@ -1,11 +1,17 @@
-from byteplussdkarkruntime import Ark
+import base64
+import io
+
 import requests
+from byteplussdkarkruntime import Ark
+from config.env import config
 from config.logger import logger
 from core.models import ImageResponse
-from config.env import config
-from routes.byteplus.constants import BYTEPLUS_NFSW_ERROR_CODES
-from routes.byteplus.models import BytePlusImageGenerationRequest, BytePlusImageEditRequest, Seedream4Params
-from routes.byteplus.constants import model_content_filters
+from PIL import Image
+from routes.byteplus.constants import (BYTEPLUS_NFSW_ERROR_CODES,
+                                       model_content_filters)
+from routes.byteplus.models import (BytePlusImageEditRequest,
+                                    BytePlusImageGenerationRequest,
+                                    Seedream4Params)
 
 
 class BytePlusService:
@@ -97,65 +103,104 @@ class BytePlusService:
         )
 
     def generate_image_with_seedream_4(self, request: Seedream4Params) -> ImageResponse:
-        model = request.model
-
-        if request.content_filter_disabled:
+        try:
             logger.info(
-                "Changing model configuration: content moderation disabled")
+                f"Generating image with Seedream 4 model. Payload: {request.model_dump()}")
+            model = request.model
 
-            filtered_model = model_content_filters.get(model, None)
+            if request.content_filter_disabled:
+                logger.info(
+                    "Changing model configuration: content moderation disabled")
 
-            if filtered_model:
-                model = filtered_model
-                logger.info(f"Model changed to {model}")
-            else:
-                logger.info(f"No content filter found for model {model}")
+                filtered_model = model_content_filters.get(model, None)
 
-        url = "https://ark.ap-southeast.bytepluses.com/api/v3/images/generations"
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {config.BYTEPLUS_API_KEY}"
-        }
+                if filtered_model:
+                    model = filtered_model
+                    logger.info(f"Model changed to {model}")
+                else:
+                    logger.info(
+                        f"No content filter found for model {model}")
 
-        payload = {
-            "model": model,
-            "prompt": request.prompt,
-            "size": request.size,
-            "seed": request.seed,
-            "watermark": request.watermark,
-            "response_format": "url",
-            "image": request.image,
-            "sequential_image_generation": request.sequential_image_generation,
-            "stream": request.stream,
-            "sequential_image_generation_options": {
-                "max_images": request.max_images
-            },
-        }
+                url = "https://ark.ap-southeast.bytepluses.com/api/v3/images/generations"
+                headers = {
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {config.BYTEPLUS_API_KEY}"
+                }
 
-        response = requests.post(url, headers=headers, json=payload)
+                payload = {
+                    "model": model,
+                    "prompt": request.prompt,
+                    "size": request.size,
+                    "seed": request.seed,
+                    "watermark": request.watermark,
+                    "response_format": "url",
+                    "image": [BytePlusServiceUtils.convert_url_to_base64_png(img) for img in request.image] if request.image else None,
+                    "sequential_image_generation": request.sequential_image_generation,
+                    "stream": request.stream,
+                    "sequential_image_generation_options": {
+                        "max_images": request.max_images
+                    },
+                }
 
-        if response.status_code != 200:
+                for img in payload["image"] or []:
+                    print
+
+                response = requests.post(url, headers=headers, json=payload)
+
+                if response.status_code != 200:
+                    logger.error(
+                        f"Error in Seedream 4 HTTP response: {response.status_code} - {response.text}")
+                    return ImageResponse(
+                        error=f"HTTP {response.status_code}: {response.text}",
+                        is_nsfw_detected=False,
+                    )
+
+                result = response.json()
+
+                if "data" not in result or not result["data"]:
+                    logger.error(
+                        f"Error in Seedream 4 response: {result}")
+                    return ImageResponse(
+                        error=result.get("error", "Unknown error"),
+                        is_nsfw_detected=(
+                            result.get("error", {}).get(
+                                "code") in BYTEPLUS_NFSW_ERROR_CODES
+                            if "error" in result else False
+                        ),
+                    )
+
+                return ImageResponse(
+                    asset_urls=[item["url"] for item in result["data"]],
+                    model_response=result,
+                    model_usage=result.get("usage"),
+                )
+
+        except Exception as e:
+            logger.error(f"Error generating image with Seedream 4: {e}")
             return ImageResponse(
-                error=f"HTTP {response.status_code}: {response.text}",
+                error=str(e),
                 is_nsfw_detected=False,
-                model_response=response.text
+                model_response=None
             )
 
-        result = response.json()
 
-        if "data" not in result or not result["data"]:
-            return ImageResponse(
-                error=result.get("error", "Unknown error"),
-                is_nsfw_detected=(
-                    result.get("error", {}).get(
-                        "code") in BYTEPLUS_NFSW_ERROR_CODES
-                    if "error" in result else False
-                ),
-                model_response=result
-            )
+class BytePlusServiceUtils:
+    @staticmethod
+    def convert_url_to_base64_png(url: str) -> str:
+        try:
+            response = requests.get(url, timeout=10)
+            response.raise_for_status()
 
-        return ImageResponse(
-            asset_urls=[item["url"] for item in result["data"]],
-            model_response=result,
-            model_usage=result.get("usage"),
-        )
+            # Open with PIL and convert to PNG
+            image = Image.open(io.BytesIO(response.content))
+            buffer = io.BytesIO()
+            image.save(buffer, format="PNG")
+            buffer.seek(0)
+
+            # Convert to base64
+            b64_string = base64.b64encode(buffer.read()).decode("utf-8")
+            return f"data:image/png;base64,{b64_string}"
+
+        except Exception as e:
+            logger.error(f"Error converting URL to base64 PNG: {e}")
+            raise e

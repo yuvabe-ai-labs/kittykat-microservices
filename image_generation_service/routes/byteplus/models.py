@@ -66,10 +66,9 @@ class SeedEdit_3_Params(BaseParams):
 class Seedream4Params(BaseParams):
     model: Literal["seedream-4-0-250828"]
     prompt: str
-    image: List[str] = Field(
-        default=[],
+    image: Optional[List[str]] = Field(
+        default=None,
         description="List of base64 encoded images or image URLs to be used as references.",
-        min_items=1,
         max_items=10,
     )
     size: Literal["1K", "2K", "4K", "2048x2048", "2304x1728", "1728x2304", "2560x1440", "1440x2560", "2496x1664", "1664x2496", "3024x1296"] = Field(
@@ -80,8 +79,8 @@ class Seedream4Params(BaseParams):
         default=-1,
         description="Seed for random number generator. Use -1 for random seed.",
     )
-    max_images: int = Field(
-        default=1,
+    max_images: Optional[int] = Field(
+        default=None,
         description="Maximum number of images to generate. Default is 1. Max is 15.",
         ge=1,
         le=15,
@@ -101,7 +100,12 @@ class Seedream4Params(BaseParams):
 
     @model_validator(mode="after")
     def check_total_images(cls, values: "Seedream4Params"):
-        total = len(values.image) + values.max_images
+        if values.sequential_image_generation == "auto" and values.max_images is None:
+            raise ValueError(
+                "max_images must be specified when sequential_image_generation is 'disabled'."
+            )
+
+        total = len(values.image or []) + (values.max_images or 0)
         if total > 15:
             raise ValueError(
                 f"Total images (references + generated) cannot exceed 15. Got {total}."
@@ -110,4 +114,4 @@ class Seedream4Params(BaseParams):
 
 
 BytePlusImageGenerationRequest = Union[Seeddream_3_Params, Seedream4Params]
-BytePlusImageEditRequest = Union[SeedEdit_3_Params]
+BytePlusImageEditRequest = Union[SeedEdit_3_Params, Seedream4Params]
