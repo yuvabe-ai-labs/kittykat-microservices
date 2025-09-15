@@ -100,11 +100,6 @@ class Seedream4Params(BaseParams):
 
     @model_validator(mode="after")
     def check_total_images(cls, values: "Seedream4Params"):
-        if values.sequential_image_generation == "auto" and values.max_images is None:
-            raise ValueError(
-                "max_images must be specified when sequential_image_generation is 'disabled'."
-            )
-
         total = len(values.image or []) + (values.max_images or 0)
         if total > 15:
             raise ValueError(
