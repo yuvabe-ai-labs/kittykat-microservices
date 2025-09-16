@@ -1,6 +1,6 @@
 from logging.config import dictConfig
 import logging
-from config.settings import config
+from video_generation_service.config.env import env
 
 
 LOGGING_CONFIG = {
@@ -37,5 +37,5 @@ def setup_logging():
 
 # Exported logger instance
 setup_logging()
-logger_name = f"platform-services-video-gen-{config.STAGE_TYPE}"
+logger_name = f"platform-services-video-gen-{env.STAGE_TYPE}"
 logger = logging.getLogger(logger_name)

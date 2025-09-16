@@ -12,6 +12,8 @@ from ..core.config import make_request
 
 router = APIRouter(prefix="/predictions")
 
+# Should make it compatible with oher models too :(
+
 
 @router.post("", response_model=BaseApiResponse)
 async def create_prediction(
@@ -30,7 +32,8 @@ async def create_prediction(
 
     payload = request.dict(exclude_none=True)
 
-    status_code, response_data = make_request("POST", url, payload, custom_headers)
+    status_code, response_data = make_request(
+        "POST", url, payload, custom_headers)
     print("p", response_data)
 
     # If prefer header contains 'wait' and we got a 202 response, poll until complete
@@ -52,7 +55,8 @@ async def create_prediction(
             poll_url = f"https://api.replicate.com/v1/predictions/{prediction_id}"
             poll_status_code, poll_response = make_request("GET", poll_url)
 
-            print(f"Polling prediction: {poll_response.get('status', 'unknown')}")
+            print(
+                f"Polling prediction: {poll_response.get('status', 'unknown')}")
 
             # Check if prediction is complete or has failed
             if poll_response.get("status") in ["succeeded", "completed"]:
@@ -94,7 +98,8 @@ async def create_prediction(
 
 @router.get("/{prediction_id}", response_model=BaseApiResponse)
 async def get_prediction(
-    prediction_id: str = Path(..., description="The ID of the prediction to get")
+    prediction_id: str = Path(...,
+                              description="The ID of the prediction to get")
 ):
     """
     Get the current state of a prediction.
@@ -158,7 +163,8 @@ async def list_predictions(
 
 @router.post("/{prediction_id}/cancel", response_model=BaseApiResponse)
 async def cancel_prediction(
-    prediction_id: str = Path(..., description="The ID of the prediction to cancel")
+    prediction_id: str = Path(...,
+                              description="The ID of the prediction to cancel")
 ):
     """
     Cancel a prediction.

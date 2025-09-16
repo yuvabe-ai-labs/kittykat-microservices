@@ -1,29 +1,28 @@
-import base64
-from fastapi import APIRouter, Query, Path, Header, status
-import httpx
+from fastapi import APIRouter, status
 from core.utils import BaseApiResponse
+from core.models import ImageResponse
 from .models import ImageUpscaleRequest
 from config.logger import logger
 from .service import ImageUpscaleService
 
-router = APIRouter(prefix="/image-upscaling")
+router = APIRouter(prefix="/magnific")
 
 
-@router.post("", response_model=BaseApiResponse)
+@router.post("/upscale", response_model=BaseApiResponse[ImageResponse])
 async def upscale_image(request: ImageUpscaleRequest):
     """
     Upscale an image using Magnific's asynchronous API.
     Returns task_id which can be tracked via webhook or polling.
     """
     try:
-        result = await ImageUpscaleService.call_magnific_api(request)
-        print(f"Received response from Magnific API: {result}")
-        task_id = result.get("data", {}).get("task_id")
+        image_upscale_service = ImageUpscaleService()
+
+        result = await image_upscale_service.call_magnific_api(request)
 
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
             message="Image upscale task created successfully.",
-            data={"task_id": task_id}
+            data=result
         )
 
     except ValueError as ve:
@@ -31,7 +30,10 @@ async def upscale_image(request: ImageUpscaleRequest):
         return BaseApiResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
             message=str(ve),
-            data=None
+            data=ImageResponse(
+                error=str(ve),
+                is_nsfw_detected=False,
+            )
         )
 
     except RuntimeError as re:
@@ -39,7 +41,10 @@ async def upscale_image(request: ImageUpscaleRequest):
         return BaseApiResponse(
             status_code=status.HTTP_502_BAD_GATEWAY,
             message="Magnific API returned an error.",
-            data={"error": str(re)}
+            data=ImageResponse(
+                error=str(re),
+                is_nsfw_detected=False,
+            )
         )
 
     except Exception as e:
@@ -47,5 +52,8 @@ async def upscale_image(request: ImageUpscaleRequest):
         return BaseApiResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             message="An error occurred while starting the image upscale task",
-            data={"error": str(e)}
+            data=ImageResponse(
+                error=str(e),
+                is_nsfw_detected=False,
+            )
         )
