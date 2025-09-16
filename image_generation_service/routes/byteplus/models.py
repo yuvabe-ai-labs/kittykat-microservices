@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class BaseParams(BaseModel):
@@ -63,5 +63,50 @@ class SeedEdit_3_Params(BaseParams):
     )
 
 
-BytePlusImageGenerationRequest = Union[Seeddream_3_Params]
-BytePlusImageEditRequest = Union[SeedEdit_3_Params]
+class Seedream4Params(BaseParams):
+    model: Literal["seedream-4-0-250828"]
+    prompt: str
+    image: Optional[List[str]] = Field(
+        default=None,
+        description="List of base64 encoded images or image URLs to be used as references.",
+        max_items=10,
+    )
+    size: Literal["1K", "2K", "4K", "2048x2048", "2304x1728", "1728x2304", "2560x1440", "1440x2560", "2496x1664", "1664x2496", "3024x1296"] = Field(
+        default="1K",
+        description="Size of the generated image. Options are '1K', '2K', '4K'.",
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for random number generator. Use -1 for random seed.",
+    )
+    max_images: Optional[int] = Field(
+        default=None,
+        description="Maximum number of images to generate. Default is 1. Max is 15.",
+        ge=1,
+        le=15,
+    )
+    sequential_image_generation: Literal["auto", "disabled"] = Field(
+        default="disabled",
+        description="Whether to use sequential image generation. Options are 'auto' and 'disabled'. Default is 'auto'.",
+    )
+    stream: bool = Field(
+        default=False,
+        description="Whether to stream the response. Default is False.",
+    )
+    watermark: bool = Field(
+        default=False,
+        description="Whether to add a watermark to the generated image. Default is False.",
+    )
+
+    @model_validator(mode="after")
+    def check_total_images(cls, values: "Seedream4Params"):
+        total = len(values.image or []) + (values.max_images or 0)
+        if total > 15:
+            raise ValueError(
+                f"Total images (references + generated) cannot exceed 15. Got {total}."
+            )
+        return values
+
+
+BytePlusImageGenerationRequest = Union[Seeddream_3_Params, Seedream4Params]
+BytePlusImageEditRequest = Union[SeedEdit_3_Params, Seedream4Params]
