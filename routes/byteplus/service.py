@@ -145,7 +145,8 @@ class BytePlusService:
             for img in payload["image"] or []:
                 print
 
-            response = requests.post(url, headers=headers, json=payload)
+            response = requests.post(
+                url, headers=headers, json=payload, timeout=600)
 
             if response.status_code != 200:
                 logger.error(
