@@ -4,7 +4,6 @@ from typing import Optional
 from urllib.parse import urlparse
 
 import requests
-from config.gcp import client as gcp_client
 from config.logger import logger
 from core.models import ImageResponse
 from openai import NotGiven
@@ -25,7 +24,7 @@ class OpenAIService:
                 if (f := OpenAIServiceUtils.url_to_file_safe(url)) is not None
             ]
 
-            print(
+            logger.info(
                 request.model_dump_json(
                     indent=2
                 )

@@ -1,3 +1,15 @@
+BYTEPLUS_NFSW_ERROR_CODES = [
+    "SensitiveContentDetected",
+    "SensitiveContentDetected.SevereViolation",
+    "SensitiveContentDetected.Violence",
+    "InputTextSensitiveContentDetected",
+    "InputImageSensitiveContentDetected",
+    "InputVideoSensitiveContentDetected",
+    "OutputTextSensitiveContentDetected",
+    "OutputImageSensitiveContentDetected",
+    "OutputVideoSensitiveContentDetected"
+]
+
 model_content_filters = {
     "seededit-3-0-i2i-250628": "ep-20250903153516-x4rgf",
     "seedance-1-0-lite-t2v-250428": "ep-20250903154616-2v745",
