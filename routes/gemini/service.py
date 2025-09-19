@@ -54,11 +54,21 @@ class GeminiService:
 
             asset_base64s = []
 
-            for part in response.candidates[0].content.parts:
-                if part.inline_data is not None:
-                    data = part.inline_data.data
-                    b64_string = base64.b64encode(data).decode('utf-8')
-                    asset_base64s.append(b64_string)
+            if response.candidates and response.candidates[0].content:
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data is not None:
+                        data = part.inline_data.data
+                        b64_string = base64.b64encode(data).decode('utf-8')
+                        asset_base64s.append(b64_string)
+
+            if not asset_base64s:
+                logger.info(response.sdk_http_response)
+                # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
+                return ImageResponse(
+                    error=response.to_json_dict(),
+                    is_nsfw_detected=True,
+                    model_usage=response.usage_metadata
+                )
 
             return ImageResponse(
                 asset_base64s=asset_base64s,
@@ -91,11 +101,21 @@ class GeminiService:
 
             asset_base64s = []
 
-            for part in response.candidates[0].content.parts:
-                if part.inline_data is not None:
-                    data = part.inline_data.data
-                    b64_string = base64.b64encode(data).decode('utf-8')
-                    asset_base64s.append(b64_string)
+            if response.candidates and response.candidates[0].content:
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data is not None:
+                        data = part.inline_data.data
+                        b64_string = base64.b64encode(data).decode('utf-8')
+                        asset_base64s.append(b64_string)
+
+            if not asset_base64s:
+                logger.info(response.sdk_http_response)
+                # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
+                return ImageResponse(
+                    error=response.to_json_dict(),
+                    is_nsfw_detected=True,
+                    model_usage=response.usage_metadata
+                )
 
             return ImageResponse(
                 asset_base64s=asset_base64s,
@@ -123,11 +143,21 @@ class GeminiService:
 
         asset_base64s = []
 
-        for part in response.candidates[0].content.parts:
-            if part.inline_data is not None:
-                data = part.inline_data.data
-                b64_string = base64.b64encode(data).decode('utf-8')
-                asset_base64s.append(b64_string)
+        if response.candidates and response.candidates[0].content:
+            for part in response.candidates[0].content.parts:
+                if part.inline_data is not None:
+                    data = part.inline_data.data
+                    b64_string = base64.b64encode(data).decode('utf-8')
+                    asset_base64s.append(b64_string)
+
+        if not asset_base64s:
+            logger.info(response.sdk_http_response)
+            # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
+            return ImageResponse(
+                error=response.to_json_dict(),
+                is_nsfw_detected=True,
+                model_usage=response.usage_metadata
+            )
 
         return ImageResponse(
             asset_base64s=asset_base64s,
@@ -146,6 +176,14 @@ class GeminiService:
                 image_size=getattr(request, 'image_size', None)
             )
         )
+
+        if not response.generated_images:
+            logger.info(response.sdk_http_response)
+            # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
+            return ImageResponse(
+                error=response.to_json_dict(),
+                is_nsfw_detected=True,
+            )
 
         asset_base64s = []
 
