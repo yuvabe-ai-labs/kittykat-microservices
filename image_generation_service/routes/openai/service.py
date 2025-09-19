@@ -25,6 +25,12 @@ class OpenAIService:
                 if (f := OpenAIServiceUtils.url_to_file_safe(url)) is not None
             ]
 
+            print(
+                request.model_dump_json(
+                    indent=2
+                )
+            )
+
             if len(reference_image_files) == 0:
                 result = client.images.generate(
                     model=request.model,

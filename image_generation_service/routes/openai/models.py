@@ -18,19 +18,15 @@ class OpenAIImageGenerationParameters(BaseModel):
     )
 
 
-class OpenAIImageGenerationModels(str, Enum):
-    GPT_IMAGE_1 = "gpt-image-1"
-
-
 class ImageGenerationRequest(BaseModel):
-    model: OpenAIImageGenerationModels
+    model: Literal["gpt-image-1"]
     prompt: str
     parameters: OpenAIImageGenerationParameters
     reference_images: Optional[List[str]] = None
 
 
 class ImageEditRequest(BaseModel):
-    model: OpenAIImageGenerationModels
+    model: Literal["gpt-image-1"]
     prompt: str
     base_image: str
     reference_images: Optional[List[str]] = None
@@ -45,7 +41,7 @@ class ImageEditRequest(BaseModel):
 
 
 class VirtualTryOnRequest(BaseModel):
-    model: OpenAIImageGenerationModels
+    model: Literal["gpt-image-1"]
     prompt: Optional[str] = None
     model_image: str
     product_image: str

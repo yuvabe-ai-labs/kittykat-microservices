@@ -44,10 +44,12 @@ class GeminiVideoGenerationService:
 
             # Poll the operation status until the video is ready.
             while not operation.done:
-                print("Waiting for video generation to complete...")
+                logger.info("Waiting for video generation to complete...")
                 time.sleep(10)
                 operation = self.gemini_client.operations.get(operation)
 
+            if operation.error:
+                raise Exception(f"Video generation failed: {operation.error}")
             video = operation.response.generated_videos[0]
 
             return VideoResponse(
