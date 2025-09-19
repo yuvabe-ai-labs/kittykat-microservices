@@ -48,8 +48,15 @@ class GeminiVideoGenerationService:
                 time.sleep(10)
                 operation = self.gemini_client.operations.get(operation)
 
-            if operation.error:
-                raise Exception(f"Video generation failed: {operation.error}")
+            logger.info(operation)
+
+            if operation.error or operation.response.rai_media_filtered_reasons:
+                return VideoResponse(
+                    error=operation.error,
+                    # Assuming NSFW detection is not applicable in case of an error
+                    is_nsfw_detected=True,
+                )
+
             video = operation.response.generated_videos[0]
 
             return VideoResponse(

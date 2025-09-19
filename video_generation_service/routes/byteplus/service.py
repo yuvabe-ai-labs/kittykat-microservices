@@ -1,13 +1,14 @@
 from typing import Iterable
 
 from byteplussdkarkruntime import Ark
+from byteplussdkarkruntime._exceptions import ArkBadRequestError
 from byteplussdkarkruntime.types.content_generation.create_task_content_param import \
     CreateTaskContentParam
 from config.env import env
 from routes.byteplus.models import BytePlusVideoGenerationRequest
 from utils.logger import logger
 
-from .constants import model_content_filters
+from .constants import BYTEPLUS_NFSW_ERROR_CODES, model_content_filters
 from core.models import VideoResponse
 
 
@@ -79,6 +80,12 @@ class BytePlusVideoGenerationService:
                 model_response={
                     "task_id": response.id,
                 },
+            )
+        except ArkBadRequestError as e:
+            logger.error(f"BytePlus BadRequestError: {e}")
+            return VideoResponse(
+                error=str(e),
+                is_nsfw_detected=e.code in BYTEPLUS_NFSW_ERROR_CODES if e.code else False,
             )
         except Exception as e:
             logger.error(f"Error generating video: {e}")
