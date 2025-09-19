@@ -83,7 +83,7 @@ class BytePlusService:
             seed=request.seed,
             watermark=request.watermark,
             response_format="url",
-            image=request.image
+            image=BytePlusServiceUtils.convert_url_to_base64_png(request.image)
         )
 
         logger.info(
@@ -141,9 +141,6 @@ class BytePlusService:
                     "max_images": request.max_images
                 },
             }
-
-            for img in payload["image"] or []:
-                print
 
             response = requests.post(
                 url, headers=headers, json=payload, timeout=600)
