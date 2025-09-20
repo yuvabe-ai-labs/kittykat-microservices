@@ -18,30 +18,20 @@ class OpenAIImageGenerationParameters(BaseModel):
     )
 
 
-class OpenAIImageGenerationModels(str, Enum):
-    GPT_IMAGE_1 = "gpt-image-1"
-
-
 class ImageGenerationRequest(BaseModel):
-    model: OpenAIImageGenerationModels
+    model: Literal["gpt-image-1"]
     prompt: str
     parameters: OpenAIImageGenerationParameters
     reference_images: Optional[List[str]] = None
-    bucket: str
-    bucket_path: str
-    file_name: str
 
 
 class ImageEditRequest(BaseModel):
-    model: OpenAIImageGenerationModels
+    model: Literal["gpt-image-1"]
     prompt: str
     base_image: str
     reference_images: Optional[List[str]] = None
     mask_image: Optional[str] = None
     parameters: OpenAIImageGenerationParameters
-    bucket: str
-    bucket_path: str
-    file_name: str
 
     @field_validator("reference_images")
     def validate_reference_images_max_length(cls, v):
@@ -51,11 +41,8 @@ class ImageEditRequest(BaseModel):
 
 
 class VirtualTryOnRequest(BaseModel):
-    model: OpenAIImageGenerationModels
+    model: Literal["gpt-image-1"]
     prompt: Optional[str] = None
     model_image: str
     product_image: str
     parameters: OpenAIImageGenerationParameters
-    bucket: str
-    bucket_path: str
-    file_name: str
