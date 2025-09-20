@@ -140,6 +140,7 @@ class OpenAIService:
 
     def generate_vton_image(self, request: VirtualTryOnRequest) -> ImageResponse:
         try:
+            print(request.product_image)
             image_files = [
                 OpenAIServiceUtils.url_to_file_safe(request.model_image),
                 OpenAIServiceUtils.url_to_file_safe(request.product_image),
@@ -187,29 +188,32 @@ class OpenAIServiceUtils:
             response = requests.get(url, timeout=30)
             response.raise_for_status()
 
-            # Try to extract filename from URL
-            parsed = urlparse(url)
-            filename = os.path.basename(parsed.path)
-            if not filename or '.' not in filename:
-                # Default to a PNG file if extension is missing
-                filename = "file.png"
-
-            # Validate supported extensions
-            ext = os.path.splitext(filename)[1].lower()
-            if ext not in [".png", ".jpeg", ".webp"]:
-                logger.info(
-                    f"Unsupported extension: {ext}. Defaulting to .png")
-                filename = "file.png"
-
-            file_content_type = response.headers.get(
-                "Content-Type", "").lower()
-            if file_content_type not in ["image/png", "image/jpeg", "image/webp"]:
-                logger.warning(
-                    f"Invalid or missing content-type: {file_content_type}. Forcing image/png"
-                )
-                file_content_type = "image/png"
-
             file_content = BytesIO(response.content)
+            img = Image.open(file_content)
+            img_format = img.format.lower()
+            print(img_format)
+
+            if img_format not in ["png", "jpeg", "webp"]:
+                logger.warning(
+                    f"Invalid file format. Converting to image/png"
+                )
+                # Convert to PNG using Pillow
+                try:
+                    img = Image.open(file_content).convert("RGBA")
+                    converted_content = BytesIO()
+                    img.save(converted_content, format="PNG")
+                    converted_content.seek(0)
+                    file_content = converted_content
+                    file_content_type = "image/png"
+                    filename = "file.png"
+                except Exception as e:
+                    logger.error(f"Failed to convert image: {e}")
+                    raise
+            else:
+                ext = img_format.lower()
+                file_content_type = f"image/{ext}"
+                filename = f"file.{ext}"
+
             file = (
                 filename,
                 file_content,
