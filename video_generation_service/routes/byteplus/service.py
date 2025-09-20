@@ -1,20 +1,24 @@
 from typing import Iterable
-from byteplussdkarkruntime import Ark
 
-from byteplussdkarkruntime.types.content_generation.create_task_content_param import CreateTaskContentParam
-from config.settings import config
+from byteplussdkarkruntime import Ark
+from byteplussdkarkruntime._exceptions import ArkBadRequestError
+from byteplussdkarkruntime.types.content_generation.create_task_content_param import \
+    CreateTaskContentParam
+from config.env import env
 from routes.byteplus.models import BytePlusVideoGenerationRequest
 from utils.logger import logger
-from .constants import model_content_filters
+
+from .constants import BYTEPLUS_NFSW_ERROR_CODES, model_content_filters
+from core.models import VideoResponse
 
 
 class BytePlusVideoGenerationService:
     def __init__(self):
         self.byteplus_client = Ark(
-            api_key=config.BYTEPLUS_API_KEY,
+            api_key=env.BYTEPLUS_API_KEY,
         )
 
-    async def generate_video(self, request: BytePlusVideoGenerationRequest) -> str:
+    async def generate_video(self, request: BytePlusVideoGenerationRequest) -> VideoResponse:
         """
         Generate a video using BytePlus SDK based on the provided request parameters.
         Returns the task ID of the created video generation task.
@@ -68,7 +72,27 @@ class BytePlusVideoGenerationService:
                 content=content
             )
 
-            return response.id
+            res = self.byteplus_client.content_generation.tasks.get(
+                task_id=response.id)
+            logger.info(f"BytePlus response: {res.usage}")
+            return VideoResponse(
+                webhook_url=str(request.webhook_url),
+                model_response={
+                    "task_id": response.id,
+                },
+            )
+        except ArkBadRequestError as e:
+            logger.error(f"BytePlus BadRequestError: {e}")
+            return VideoResponse(
+                error=str(e),
+                is_nsfw_detected=e.code in BYTEPLUS_NFSW_ERROR_CODES if e.code else False,
+            )
         except Exception as e:
             logger.error(f"Error generating video: {e}")
-            raise e
+            # TODO: Improve NSFW detection
+            is_nsfw = "NSFW" in str(e) or "content moderation" in str(e)
+
+            return VideoResponse(
+                error=str(e),
+                is_nsfw_detected=is_nsfw,
+            )
