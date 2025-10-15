@@ -39,13 +39,13 @@ class GeminiService:
             contents = [
                 Content(role="user", parts=[Part.from_text(text=request.prompt)])]
 
-            contents.append(GeminiServiceUtils.convert_url_to_image_like(
-                request.base_image))
-
             if request.reference_images:
                 for image_url in request.reference_images:
                     contents.append(GeminiServiceUtils.convert_url_to_image_like(
                         image_url))
+
+            contents.append(GeminiServiceUtils.convert_url_to_image_like(
+                request.base_image))
 
             response = self.gemini_client.models.generate_content(
                 model=request.model,
