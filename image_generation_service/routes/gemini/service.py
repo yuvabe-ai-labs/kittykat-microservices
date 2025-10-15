@@ -136,10 +136,21 @@ class GeminiService:
                 contents.append(
                     GeminiServiceUtils.convert_url_to_image_like(image_url))
 
-        response = self.gemini_client.models.generate_content(
-            model=request.model,
-            contents=contents,
-        )
+        if request.aspect_ratio and request.aspect_ratio.lower() != "auto":
+            response = self.gemini_client.models.generate_content(
+                model=request.model,
+                contents=contents,
+                config={
+                    "image_config": {
+                        "aspect_ratio": request.aspect_ratio,
+                    },
+                }
+            )
+        else:
+            response = self.gemini_client.models.generate_content(
+                model=request.model,
+                contents=contents,
+            )
 
         asset_base64s = []
 
