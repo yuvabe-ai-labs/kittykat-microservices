@@ -6,7 +6,7 @@ from config.env import config
 from config.logger import logger
 from core.models import ImageResponse
 from google import genai
-from google.genai.types import Content, Part, GenerateImagesConfig
+from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig
 from PIL import Image
 
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
@@ -50,6 +50,9 @@ class GeminiService:
             response = self.gemini_client.models.generate_content(
                 model=request.model,
                 contents=contents,
+                config=GenerateContentConfig(
+                    response_modalities=['Image']
+                )
             )
 
             asset_base64s = []
@@ -97,6 +100,9 @@ class GeminiService:
             response = self.gemini_client.models.generate_content(
                 model=request.model,
                 contents=contents,
+                config=GenerateContentConfig(
+                    response_modalities=['Image']
+                )
             )
 
             asset_base64s = []
@@ -139,6 +145,9 @@ class GeminiService:
         response = self.gemini_client.models.generate_content(
             model=request.model,
             contents=contents,
+            config=GenerateContentConfig(
+                response_modalities=['Image']
+            )
         )
 
         asset_base64s = []
