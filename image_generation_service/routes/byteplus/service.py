@@ -158,7 +158,7 @@ class BytePlusService:
             # Handle aspect ratio in prompt
             prompt = request.prompt
             if request.aspect_ratio.lower() != "auto":
-                prompt = f"{prompt} in aspect ratio {request.aspect_ratio}"
+                prompt = f"{prompt} in aspect ratio {request.aspect_ratio}."
 
             payload = {
                 "model": model,
