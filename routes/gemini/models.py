@@ -96,7 +96,15 @@ GeminiImageEditRequest = Union[Gemini_2_5_Flash_Image_Preview_Edit]
 
 
 class GeminiVirtualTryOnRequest(BaseModel):
-    model: Literal["gemini-2.5-flash-image-preview"]
+    model: Literal["gemini-2.5-flash-image-preview", "genini-2.5-flash-image"] = Field(
+        "gemini-2.5-flash-image-preview",
+        description="The model to use for image generation.",
+    )
     prompt: Optional[str] = None
     model_image: str
     product_image: str
+
+    @field_validator("model")
+    def normalize_model(cls, v):
+        # Always return the latest stable model to accomadate backwards compatibility
+        return "gemini-2.5-flash-image"
