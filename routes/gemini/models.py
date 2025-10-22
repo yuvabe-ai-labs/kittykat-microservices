@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class BaseImageModel(BaseModel):
@@ -10,7 +10,7 @@ class BaseImageModel(BaseModel):
 
 
 class Gemini_2_5_Flash_Image_Preview(BaseImageModel):
-    model: Literal["gemini-2.5-flash-image-preview"] = Field(
+    model: Literal["gemini-2.5-flash-image-preview", "gemini-2.5-flash-image"] = Field(
         "gemini-2.5-flash-image-preview",
         description="The model to use for image generation.",
     )
@@ -23,6 +23,11 @@ class Gemini_2_5_Flash_Image_Preview(BaseImageModel):
     aspect_ratio: Literal["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] = Field(
         "auto", description="Aspect ratio of the generated images."
     )
+
+    @field_validator("model")
+    def normalize_model(cls, v):
+        # Always return the latest stable model to accomadate backwards compatibility
+        return "gemini-2.5-flash-image"
 
 
 class Gemini_2_5_Flash_Image_Preview_Edit(BaseImageModel):
@@ -39,6 +44,11 @@ class Gemini_2_5_Flash_Image_Preview_Edit(BaseImageModel):
         max_length=2,
         description="List of URLs of reference images to guide the image generation.",
     )
+
+    @field_validator("model")
+    def normalize_model(cls, v):
+        # Always return the latest stable model to accomadate backwards compatibility
+        return "gemini-2.5-flash-image"
 
 
 class Imagen4GenerateParams(BaseModel):
@@ -86,7 +96,15 @@ GeminiImageEditRequest = Union[Gemini_2_5_Flash_Image_Preview_Edit]
 
 
 class GeminiVirtualTryOnRequest(BaseModel):
-    model: Literal["gemini-2.5-flash-image-preview"]
+    model: Literal["gemini-2.5-flash-image-preview", "genini-2.5-flash-image"] = Field(
+        "gemini-2.5-flash-image-preview",
+        description="The model to use for image generation.",
+    )
     prompt: Optional[str] = None
     model_image: str
     product_image: str
+
+    @field_validator("model")
+    def normalize_model(cls, v):
+        # Always return the latest stable model to accomadate backwards compatibility
+        return "gemini-2.5-flash-image"
