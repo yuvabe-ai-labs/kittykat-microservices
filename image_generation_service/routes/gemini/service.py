@@ -6,7 +6,7 @@ from config.env import config
 from config.logger import logger
 from core.models import ImageResponse
 from google import genai
-from google.genai.types import Content, Part, GenerateImagesConfig
+from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig, ImageConfig
 from PIL import Image
 
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
@@ -24,7 +24,7 @@ class GeminiService:
     def generate_image(self, request: GeminiImageGenerationRequest) -> ImageResponse:
         try:
             match request.model:
-                case "gemini-2.5-flash-image-preview":
+                case "gemini-2.5-flash-image":
                     return self.generate_image_with_multimodal(request)
 
                 case "imagen-4.0-generate-001" | "imagen-4.0-ultra-generate-001" | "imagen-4.0-fast-generate-001":
@@ -50,6 +50,9 @@ class GeminiService:
             response = self.gemini_client.models.generate_content(
                 model=request.model,
                 contents=contents,
+                config=GenerateContentConfig(
+                    response_modalities=['Image']
+                )
             )
 
             asset_base64s = []
@@ -97,6 +100,9 @@ class GeminiService:
             response = self.gemini_client.models.generate_content(
                 model=request.model,
                 contents=contents,
+                config=GenerateContentConfig(
+                    response_modalities=['Image']
+                )
             )
 
             asset_base64s = []
@@ -128,6 +134,12 @@ class GeminiService:
             raise e
 
     def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview]) -> ImageResponse:
+        print(request.model_dump_json(indent=2))
+        return ImageResponse(
+            asset_base64s=[],
+            model_response={},
+            model_usage={}
+        )
         contents = [
             Content(role="user", parts=[Part.from_text(text=request.prompt)])]
 
@@ -136,21 +148,16 @@ class GeminiService:
                 contents.append(
                     GeminiServiceUtils.convert_url_to_image_like(image_url))
 
-        if request.aspect_ratio and request.aspect_ratio.lower() != "auto":
-            response = self.gemini_client.models.generate_content(
-                model=request.model,
-                contents=contents,
-                config={
-                    "image_config": {
-                        "aspect_ratio": request.aspect_ratio,
-                    },
-                }
+        response = self.gemini_client.models.generate_content(
+            model=request.model,
+            contents=contents,
+            config=GenerateContentConfig(
+                response_modalities=['Image'],
+                image_config=ImageConfig(
+                    aspect_ratio=None if request.aspect_ratio == "auto" else request.aspect_ratio,
+                )
             )
-        else:
-            response = self.gemini_client.models.generate_content(
-                model=request.model,
-                contents=contents,
-            )
+        )
 
         asset_base64s = []
 
