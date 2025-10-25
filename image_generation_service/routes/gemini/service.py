@@ -134,12 +134,7 @@ class GeminiService:
             raise e
 
     def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview]) -> ImageResponse:
-        print(request.model_dump_json(indent=2))
-        return ImageResponse(
-            asset_base64s=[],
-            model_response={},
-            model_usage={}
-        )
+
         contents = [
             Content(role="user", parts=[Part.from_text(text=request.prompt)])]
 
