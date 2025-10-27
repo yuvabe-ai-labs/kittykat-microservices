@@ -155,9 +155,14 @@ class BytePlusService:
                 "Authorization": f"Bearer {config.BYTEPLUS_API_KEY}"
             }
 
+            # Handle aspect ratio in prompt
+            prompt = request.prompt
+            if request.aspect_ratio.lower() != "auto":
+                prompt = f"{prompt} in aspect ratio {request.aspect_ratio}."
+
             payload = {
                 "model": model,
-                "prompt": request.prompt,
+                "prompt": prompt,
                 "size": request.size,
                 "seed": request.seed,
                 "watermark": request.watermark,

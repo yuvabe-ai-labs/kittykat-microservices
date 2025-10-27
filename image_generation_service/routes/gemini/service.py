@@ -6,7 +6,7 @@ from config.env import config
 from config.logger import logger
 from core.models import ImageResponse
 from google import genai
-from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig
+from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig, ImageConfig
 from PIL import Image
 
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
@@ -24,7 +24,7 @@ class GeminiService:
     def generate_image(self, request: GeminiImageGenerationRequest) -> ImageResponse:
         try:
             match request.model:
-                case "gemini-2.5-flash-image-preview":
+                case "gemini-2.5-flash-image":
                     return self.generate_image_with_multimodal(request)
 
                 case "imagen-4.0-generate-001" | "imagen-4.0-ultra-generate-001" | "imagen-4.0-fast-generate-001":
@@ -134,6 +134,7 @@ class GeminiService:
             raise e
 
     def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview]) -> ImageResponse:
+
         contents = [
             Content(role="user", parts=[Part.from_text(text=request.prompt)])]
 
@@ -146,7 +147,10 @@ class GeminiService:
             model=request.model,
             contents=contents,
             config=GenerateContentConfig(
-                response_modalities=['Image']
+                response_modalities=['Image'],
+                image_config=ImageConfig(
+                    aspect_ratio=None if request.aspect_ratio == "auto" else request.aspect_ratio,
+                )
             )
         )
 
