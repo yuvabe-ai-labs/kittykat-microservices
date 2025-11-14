@@ -233,16 +233,24 @@ class BytePlusServiceUtils:
             response = requests.get(url, timeout=10)
             response.raise_for_status()
 
-            # Open with PIL and convert to PNG
             image = Image.open(io.BytesIO(response.content))
+
+            # Handle transparency (RGBA → RGB)
+            if image.mode in ("RGBA", "LA"):
+                background = Image.new(
+                    "RGB", image.size, (255, 255, 255))
+                background.paste(image, mask=image.split()[-1])
+                image = background
+            else:
+                image = image.convert("RGB")
+
             buffer = io.BytesIO()
-            image.save(buffer, format="PNG")
+            image.save(buffer, format="JPEG", quality=85, optimize=True)
             buffer.seek(0)
 
-            # Convert to base64
             b64_string = base64.b64encode(buffer.read()).decode("utf-8")
-            return f"data:image/png;base64,{b64_string}"
 
+            return f"data:image/jpeg;base64,{b64_string}"
         except Exception as e:
-            logger.error(f"Error converting URL to base64 PNG: {e}")
+            logger.error(f"Error converting URL to base64 JPEG: {e}")
             raise e
