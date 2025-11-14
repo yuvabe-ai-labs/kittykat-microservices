@@ -251,7 +251,6 @@ class BytePlusServiceUtils:
             b64_string = base64.b64encode(buffer.read()).decode("utf-8")
 
             return f"data:image/jpeg;base64,{b64_string}"
-
         except Exception as e:
-            print(f"Error converting URL to base64 JPEG: {e}")
+            logger.error(f"Error converting URL to base64 JPEG: {e}")
             raise e
