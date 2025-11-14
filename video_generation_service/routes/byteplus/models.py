@@ -155,7 +155,7 @@ class Seedance_1_0_Pro_Fast_Params(BaseParams):
     )
     duration: int = Field(
         default=5,
-        ge=3,
+        ge=2,
         le=12,
         description="The duration of the output video"
     )
