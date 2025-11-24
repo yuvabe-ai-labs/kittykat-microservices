@@ -30,6 +30,27 @@ class Gemini_2_5_Flash_Image_Preview(BaseImageModel):
         return "gemini-2.5-flash-image"
 
 
+class NanoBananaPro(BaseImageModel):
+    model: Literal["gemini-3-pro-image-preview"] = Field(
+        "gemini-3-pro-image-preview",
+        description="The model to use for image generation.",
+    )
+    reference_images: Optional[List[str]] = Field(
+        default=None,
+        min_length=1,
+        max_length=14,
+        description="List of URLs of reference images to guide the image generation.",
+    )
+    aspect_ratio: Literal[
+        "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+    ] = Field(
+        "1:1", description="Aspect ratio of the generated images."
+    )
+    resolution: Literal["1K", "2K", "4K"] = Field(
+        "2K", description="Resolution of the generated images."
+    )
+
+
 class Gemini_2_5_Flash_Image_Preview_Edit(BaseImageModel):
     model: Literal["gemini-2.5-flash-image-preview"] = Field(
         "gemini-2.5-flash-image-preview",
@@ -44,11 +65,39 @@ class Gemini_2_5_Flash_Image_Preview_Edit(BaseImageModel):
         max_length=2,
         description="List of URLs of reference images to guide the image generation.",
     )
+    aspect_ratio: Literal["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"] = Field(
+        "auto", description="Aspect ratio of the generated images."
+    )
 
     @field_validator("model")
     def normalize_model(cls, v):
         # Always return the latest stable model to accomadate backwards compatibility
         return "gemini-2.5-flash-image"
+
+
+class NanoBananaProEdit(BaseImageModel):
+    model: Literal["gemini-3-pro-image-preview"] = Field(
+        "gemini-3-pro-image-preview",
+        description="The model to use for image generation.",
+    )
+    base_image: str = Field(
+        ...,
+        description="URL of the base image to be edited.",
+    )
+    reference_images: Optional[List[str]] = Field(
+        default=None,
+        min_length=1,
+        max_length=13,
+        description="List of URLs of reference images to guide the image generation.",
+    )
+    aspect_ratio: Literal[
+        "auto", "1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+    ] = Field(
+        "auto", description="Aspect ratio of the generated images."
+    )
+    resolution: Literal["1K", "2K", "4K"] = Field(
+        "2K", description="Resolution of the generated images."
+    )
 
 
 class Imagen4GenerateParams(BaseModel):
@@ -91,8 +140,11 @@ class Imagen4FastGenerateParams(BaseModel):
 GeminiImageGenerationRequest = Union[Gemini_2_5_Flash_Image_Preview,
                                      Imagen4GenerateParams,
                                      Imagen4UltraGenerateParams,
-                                     Imagen4FastGenerateParams]
-GeminiImageEditRequest = Union[Gemini_2_5_Flash_Image_Preview_Edit]
+                                     Imagen4FastGenerateParams,
+                                     NanoBananaPro
+                                     ]
+GeminiImageEditRequest = Union[Gemini_2_5_Flash_Image_Preview_Edit,
+                               NanoBananaProEdit]
 
 
 class GeminiVirtualTryOnRequest(BaseModel):
