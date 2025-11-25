@@ -12,7 +12,7 @@ from PIL import Image
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
                      GeminiImageGenerationRequest, Imagen4FastGenerateParams,
-                     Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest)
+                     Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest, NanoBananaPro)
 
 
 class GeminiService:
@@ -24,7 +24,7 @@ class GeminiService:
     def generate_image(self, request: GeminiImageGenerationRequest) -> ImageResponse:
         try:
             match request.model:
-                case "gemini-2.5-flash-image":
+                case "gemini-2.5-flash-image" | "gemini-2.5-flash-image-preview" | "gemini-3-pro-image-preview":
                     return self.generate_image_with_multimodal(request)
 
                 case "imagen-4.0-generate-001" | "imagen-4.0-ultra-generate-001" | "imagen-4.0-fast-generate-001":
@@ -47,11 +47,20 @@ class GeminiService:
             contents.append(GeminiServiceUtils.convert_url_to_image_like(
                 request.base_image))
 
+            aspect_ratio = request.aspect_ratio if (
+                hasattr(request, "aspect_ratio") and request.aspect_ratio != "auto") else None
+            resolution = request.resolution if hasattr(
+                request, "resolution") else None
+
             response = self.gemini_client.models.generate_content(
                 model=request.model,
                 contents=contents,
                 config=GenerateContentConfig(
-                    response_modalities=['Image']
+                    response_modalities=['Image'],
+                    image_config=ImageConfig(
+                        aspect_ratio=aspect_ratio,
+                        image_size=resolution,
+                    )
                 )
             )
 
@@ -133,7 +142,7 @@ class GeminiService:
             logger.error(f"Error generating virtual try-on image: {e}")
             raise e
 
-    def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview]) -> ImageResponse:
+    def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview, NanoBananaPro]) -> ImageResponse:
 
         contents = [
             Content(role="user", parts=[Part.from_text(text=request.prompt)])]
@@ -150,6 +159,8 @@ class GeminiService:
                 response_modalities=['Image'],
                 image_config=ImageConfig(
                     aspect_ratio=None if request.aspect_ratio == "auto" else request.aspect_ratio,
+                    image_size=request.resolution if hasattr(
+                        request, "resolution") else None,
                 )
             )
         )
