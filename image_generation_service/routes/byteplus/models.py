@@ -100,6 +100,10 @@ class Seedream4Params(BaseParams):
     aspect_ratio: Literal["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9"] = Field(
         "auto", description="Aspect ratio of the generated images."
     )
+    optimize_prompt_options: Optional[bool] = Field(
+        default=False,
+        description="Whether to optimize the prompt for better generation results"
+    )
 
     @model_validator(mode="after")
     def check_total_images(cls, values: "Seedream4Params"):
