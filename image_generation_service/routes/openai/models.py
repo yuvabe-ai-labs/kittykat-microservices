@@ -35,8 +35,8 @@ class ImageEditRequest(BaseModel):
 
     @field_validator("reference_images")
     def validate_reference_images_max_length(cls, v):
-        if v is not None and len(v) > 10:
-            raise ValueError("reference_images can contain at most 10 URLs")
+        if v is not None and len(v) > 16:
+            raise ValueError("reference_images can contain at most 16 URLs")
         return v
 
 
