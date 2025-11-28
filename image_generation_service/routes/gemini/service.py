@@ -140,7 +140,7 @@ class GeminiService:
 
             return ImageResponse(
                 asset_base64s=asset_base64s,
-                model_response=response.to_json_dict(),
+                model_response=safe_log_dict(response.to_json_dict()),
                 model_usage=response.usage_metadata
             )
 
