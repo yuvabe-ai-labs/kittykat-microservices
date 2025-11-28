@@ -73,14 +73,18 @@ class GeminiService:
                         b64_string = base64.b64encode(data).decode('utf-8')
                         asset_base64s.append(b64_string)
 
+            logger.info("Asset base64s length:", len(asset_base64s))
+
             if not asset_base64s:
-                logger.info(response.sdk_http_response)
                 # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
                 return ImageResponse(
                     error=response.to_json_dict(),
                     is_nsfw_detected=True,
                     model_usage=response.usage_metadata
                 )
+
+            logger.info(
+                f"Edited image successfully with model {request.model}")
 
             return ImageResponse(
                 asset_base64s=asset_base64s,
