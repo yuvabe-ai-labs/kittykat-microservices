@@ -73,7 +73,7 @@ class GeminiService:
                         b64_string = base64.b64encode(data).decode('utf-8')
                         asset_base64s.append(b64_string)
 
-            logger.info("Asset base64s length:", len(asset_base64s))
+            logger.info(f"Asset base64s length: {len(asset_base64s)}")
 
             if not asset_base64s:
                 # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
