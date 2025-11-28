@@ -9,6 +9,8 @@ from google import genai
 from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig, ImageConfig
 from PIL import Image
 
+from utils.helpers import safe_log_dict
+
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
                      GeminiImageGenerationRequest, Imagen4FastGenerateParams,
@@ -88,7 +90,7 @@ class GeminiService:
 
             return ImageResponse(
                 asset_base64s=asset_base64s,
-                model_response=response.to_json_dict(),
+                model_response=safe_log_dict(response.to_json_dict()),
                 model_usage=response.usage_metadata
             )
 
