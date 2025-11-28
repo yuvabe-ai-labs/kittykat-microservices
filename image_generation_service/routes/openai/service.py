@@ -9,6 +9,8 @@ from core.models import ImageResponse
 from openai import NotGiven
 from PIL import Image, ImageOps
 
+from utils.helpers import safe_log_dict
+
 from .config import client
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (ImageEditRequest, ImageGenerationRequest,
@@ -129,7 +131,7 @@ class OpenAIService:
 
             return ImageResponse(
                 asset_base64s=asset_base64s,
-                model_response=result.model_dump(),
+                model_response=safe_log_dict(result.model_dump_json()),
                 model_usage=result.usage.model_dump() if result.usage else None
 
             )
