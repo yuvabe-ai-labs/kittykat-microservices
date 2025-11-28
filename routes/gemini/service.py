@@ -9,6 +9,8 @@ from google import genai
 from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig, ImageConfig
 from PIL import Image
 
+from utils.helpers import safe_log_dict
+
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
                      GeminiImageGenerationRequest, Imagen4FastGenerateParams,
@@ -73,8 +75,9 @@ class GeminiService:
                         b64_string = base64.b64encode(data).decode('utf-8')
                         asset_base64s.append(b64_string)
 
+            logger.info(f"Asset base64s length: {len(asset_base64s)}")
+
             if not asset_base64s:
-                logger.info(response.sdk_http_response)
                 # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
                 return ImageResponse(
                     error=response.to_json_dict(),
@@ -82,9 +85,12 @@ class GeminiService:
                     model_usage=response.usage_metadata
                 )
 
+            logger.info(
+                f"Edited image successfully with model {request.model}")
+
             return ImageResponse(
                 asset_base64s=asset_base64s,
-                model_response=response.to_json_dict(),
+                model_response=safe_log_dict(response.to_json_dict()),
                 model_usage=response.usage_metadata
             )
 
@@ -134,7 +140,7 @@ class GeminiService:
 
             return ImageResponse(
                 asset_base64s=asset_base64s,
-                model_response=response.to_json_dict(),
+                model_response=safe_log_dict(response.to_json_dict()),
                 model_usage=response.usage_metadata
             )
 
@@ -185,7 +191,7 @@ class GeminiService:
 
         return ImageResponse(
             asset_base64s=asset_base64s,
-            model_response=response.to_json_dict(),
+            model_response=safe_log_dict(response.to_json_dict()),
             model_usage=response.usage_metadata
         )
 
@@ -218,7 +224,7 @@ class GeminiService:
 
         return ImageResponse(
             asset_base64s=asset_base64s,
-            model_response=response.to_json_dict()
+            model_response=safe_log_dict(response.to_json_dict()),
         )
 
 
