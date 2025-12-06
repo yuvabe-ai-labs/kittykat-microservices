@@ -44,8 +44,9 @@ class BytePlusVideoGenerationService:
                         "image_url": {"url": str(frame)},
                     }
 
-                    if request.model == "seedance-1-0-lite-i2v-250428":
-                        item["role"] = role if request.first_frame else "first_frame"
+                    if request.model in ["seedance-1-0-lite-i2v-250428", "seedance-1-0-pro-250528"]:
+                        item["role"] = role
+
 
                     content.append(item)
 

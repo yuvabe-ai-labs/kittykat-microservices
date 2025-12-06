@@ -19,10 +19,11 @@ class Veo3Params(BaseParams):
         description="The text prompt to guide the video generation."
     )
     duration: int = Field(
-        default=8,
-        ge=8,
+        default=4,
+        ge=4,  
         le=8,
-        description="The duration of the output video in seconds."
+        multiple_of=2, 
+        description="The duration of the output video in seconds. Must be 4, 6, or 8."
     )
     negative_prompt: Optional[str] = Field(
         default=None,

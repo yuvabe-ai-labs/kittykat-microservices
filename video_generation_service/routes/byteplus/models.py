@@ -84,6 +84,10 @@ class Seedance_1_0_Pro_Params(BaseParams):
         default=None,
         description="The URL of the first frame image."
     )
+    last_frame: Optional[HttpUrl] = Field(
+        default=None,
+        description="The URL of the last frame image."
+    )
     resolution: Literal["480p", "720p", "1080p"] = Field(
         default="1080p",
         description="The resolution of the output video."
@@ -125,6 +129,9 @@ class Seedance_1_0_Pro_Params(BaseParams):
 
     @field_serializer("first_frame", when_used="always")
     def serialize_fisrt_frame(self, v: HttpUrl, _info):
+        return str(v)
+    @field_serializer("last_frame", when_used="always")
+    def serialize_last_frame(self, v: HttpUrl, _info):
         return str(v)
 
 
