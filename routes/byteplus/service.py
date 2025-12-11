@@ -130,7 +130,7 @@ class BytePlusService:
                 is_nsfw_detected=False,
             )
 
-    def generate_image_with_seedream_4(self, request: Seedream4Params) -> ImageResponse:
+    def generate_image_with_seedream_4_suite_models(self, request: Seedream4Params) -> ImageResponse:
         try:
             logger.info(
                 f"Generating image with Seedream 4 model. Payload: {request.model_dump()}")
