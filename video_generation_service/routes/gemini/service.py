@@ -4,9 +4,9 @@ from config.env import env
 from utils.logger import logger
 from core.models import VideoResponse
 from google import genai
-from google.genai.types import GenerateVideosConfig, GenerateVideosSourceDict
+from google.genai.types import GenerateVideosConfig, GenerateVideosSourceDict, VideoGenerationReferenceImage
 
-from .models import GeminiVideoGenerationRequest
+from .models import GeminiVideoGenerationRequest, Veo3_1Params, Veo3_1FastParams
 from .utils import GeminiServiceUtils
 
 
@@ -48,7 +48,72 @@ class GeminiVideoGenerationService:
                 time.sleep(10)
                 operation = self.gemini_client.operations.get(operation)
 
-            logger.info(operation)
+            if operation.error or operation.response.rai_media_filtered_reasons:
+                return VideoResponse(
+                    error=operation.error,
+                    # Assuming NSFW detection is not applicable in case of an error
+                    is_nsfw_detected=True,
+                )
+
+            video = operation.response.generated_videos[0]
+
+            return VideoResponse(
+                asset_urls=[video.video.uri],
+                model_response=operation.response.model_dump(),
+            )
+
+        except Exception as e:
+            logger.error(f"Error generating video via Gemini: {e}")
+
+            return VideoResponse(
+                error=str(e),
+                is_nsfw_detected=False,
+            )
+
+    async def generate_video_veo3_1_suite_models(self, request: GeminiVideoGenerationRequest) -> VideoResponse:
+        try:
+            first_frame = {
+                "image_bytes": GeminiServiceUtils.convert_url_to_image_bytes(
+                    str(request.first_frame)),
+                "mime_type": "image/png",
+            } if request.first_frame else None
+
+            last_frame = {
+                "image_bytes": GeminiServiceUtils.convert_url_to_image_bytes(
+                    str(request.last_frame)),
+                "mime_type": "image/png",
+            } if request.last_frame else None
+
+            reference_images = [
+                VideoGenerationReferenceImage(
+                    image=GeminiServiceUtils.convert_url_to_image_bytes(
+                        str(url)),
+                    reference_type="asset"
+                )
+                for url in request.reference_images
+            ] if request.reference_images else None
+
+            operation = self.gemini_client.models.generate_videos(
+                model=request.model,
+                config=GenerateVideosConfig(
+                    last_frame=last_frame,
+                    reference_images=reference_images,
+                    negative_prompt=getattr(
+                        request, "negative_prompt", None),
+                    resolution=getattr(request, "resolution", None),
+                    aspect_ratio=request.aspect_ratio,
+                    duration_seconds=request.duration
+                ),
+                image=first_frame,
+                prompt=request.prompt,
+
+            )
+
+            # Poll the operation status until the video is ready.
+            while not operation.done:
+                logger.info("Waiting for video generation to complete...")
+                time.sleep(10)
+                operation = self.gemini_client.operations.get(operation)
 
             if operation.error or operation.response.rai_media_filtered_reasons:
                 return VideoResponse(
