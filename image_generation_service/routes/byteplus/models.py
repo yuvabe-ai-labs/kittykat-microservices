@@ -169,4 +169,5 @@ class Seedream45Params(BaseParams):
 
 BytePlusImageGenerationRequest = Union[Seeddream_3_Params,
                                        Seedream4Params, Seedream45Params]
-BytePlusImageEditRequest = Union[SeedEdit_3_Params, Seedream4Params]
+BytePlusImageEditRequest = Union[SeedEdit_3_Params,
+                                 Seedream4Params, Seedream45Params]
