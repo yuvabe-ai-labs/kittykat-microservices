@@ -4,9 +4,9 @@ from config.env import env
 from utils.logger import logger
 from core.models import VideoResponse
 from google import genai
-from google.genai.types import GenerateVideosConfig, GenerateVideosSourceDict, VideoGenerationReferenceImage
+from google.genai.types import GenerateVideosConfig, GenerateVideosSourceDict, VideoGenerationReferenceImage, VideoGenerationReferenceType, Image
 
-from .models import GeminiVideoGenerationRequest, Veo3_1Params, Veo3_1FastParams
+from .models import GeminiVideoGenerationRequest
 from .utils import GeminiServiceUtils
 
 
@@ -84,11 +84,20 @@ class GeminiVideoGenerationService:
                 "mime_type": "image/png",
             } if request.last_frame else None
 
+            # If only last_frame is provided, use it as first_frame as well
+            if last_frame and not first_frame:
+                first_frame = last_frame
+                last_frame = None
+
             reference_images = [
                 VideoGenerationReferenceImage(
-                    image=GeminiServiceUtils.convert_url_to_image_bytes(
-                        str(url)),
-                    reference_type="asset"
+                    image=Image(
+                        image_bytes=GeminiServiceUtils.convert_url_to_image_bytes(
+                            str(url)
+                        ),
+                        mime_type="image/png",
+                    ),
+                    reference_type="ASSET"
                 )
                 for url in request.reference_images
             ] if request.reference_images else None
@@ -106,7 +115,6 @@ class GeminiVideoGenerationService:
                 ),
                 image=first_frame,
                 prompt=request.prompt,
-
             )
 
             # Poll the operation status until the video is ready.
