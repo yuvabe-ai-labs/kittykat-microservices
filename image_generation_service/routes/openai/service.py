@@ -84,11 +84,7 @@ class OpenAIService:
         try:
             # Mask image
             masked_image = OpenAIServiceUtils.url_to_mask_file_safe(
-                request.mask_image) if request.mask_image else None
-
-            # if request.mask_image and masked_image is None:
-            #     raise ValueError(
-            #         "Mask image could not be downloaded or is invalid. It must have an alpha channel.")
+                request.mask_image) if request.mask_image else NotGiven
 
             # Base image
             base_image_file = OpenAIServiceUtils.url_to_file_safe(
@@ -105,24 +101,18 @@ class OpenAIService:
             # OpenAI treates first image as base and rest as references
             image_files = [base_image_file] + reference_image_files
 
-            edit_args = {
-                "model": "gpt-image-1",
-                "size": request.parameters.size,
-                "background": request.parameters.background,
-                "quality": request.parameters.quality,
-                "n": request.parameters.n,
-                "prompt": request.prompt,
-                "output_compression": request.parameters.output_compression,
-                "output_format": request.parameters.output_format,
-                "image": image_files,
-            }
-
-            # Only include mask if it exists
-            if masked_image is not None:
-                edit_args["mask"] = masked_image
-
-            # Call OpenAI image edit
-            result = client.images.edit(**edit_args)
+            result = client.images.edit(
+                model="gpt-image-1",
+                size=request.parameters.size,
+                background=request.parameters.background,
+                quality=request.parameters.quality,
+                n=request.parameters.n,
+                prompt=request.prompt,
+                output_compression=request.parameters.output_compression,
+                output_format=request.parameters.output_format,
+                image=image_files,
+                **({"mask": masked_image} if masked_image is not NotGiven else {})
+            )
 
             asset_base64s = []
 
@@ -138,7 +128,6 @@ class OpenAIService:
                 asset_base64s=asset_base64s,
                 model_response=result.model_dump(),
                 model_usage=result.usage.model_dump() if result.usage else None
-
             )
 
         except Exception as e:
