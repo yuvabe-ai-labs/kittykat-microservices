@@ -68,14 +68,15 @@ class BytePlusVideoGenerationService:
 
             extra_kwargs = {}
 
-            if model in ["seedance-1-5-pro-251215"]:
+            # Please use `request.model` here, not `model` as `model` might have been changed to a content filter model
+            if request.model in ["seedance-1-5-pro-251215"]:
                 extra_kwargs["generate_audio"] = request.generate_audio
 
             response = self.byteplus_client.content_generation.tasks.create(
                 callback_url=str(request.webhook_url),
                 model=model,
                 content=content,
-                **extra_kwargs
+                extra_body=extra_kwargs
             )
 
             res = self.byteplus_client.content_generation.tasks.get(
