@@ -4,7 +4,7 @@ aiosignal==1.4.0
 annotated-types==0.7.0
 anyio==4.10.0
 attrs==25.3.0
-byteplus-python-sdk-v2==3.0.9
+byteplus-python-sdk-v2==3.0.25
 cachetools==5.5.2
 certifi==2025.8.3
 charset-normalizer==3.4.3

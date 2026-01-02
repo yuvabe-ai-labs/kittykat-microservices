@@ -16,5 +16,6 @@ model_content_filters = {
     "seedance-1-0-lite-i2v-250428": "ep-20250903154548-9x5xc",
     "seedream-3-0-t2i-250415": "ep-20250903154649-477dp",
     "seedance-1-0-pro-250528": "ep-20250903154721-qxf8s",
-    "seedance-1-0-pro-fast-251015": "ep-20251114141321-l8lqj"
+    "seedance-1-0-pro-fast-251015": "ep-20251114141321-l8lqj",
+    "seedance-1-5-pro-251215": "ep-20260102140136-j9dbk"
 }
