@@ -130,6 +130,7 @@ class Seedance_1_0_Pro_Params(BaseParams):
     @field_serializer("first_frame", when_used="always")
     def serialize_fisrt_frame(self, v: HttpUrl, _info):
         return str(v)
+
     @field_serializer("last_frame", when_used="always")
     def serialize_last_frame(self, v: HttpUrl, _info):
         return str(v)
@@ -188,11 +189,77 @@ class Seedance_1_0_Pro_Fast_Params(BaseParams):
         return str(v)
 
 
+class Seedance_1_5_Pro_Params(BaseParams):
+    prompt: str
+    model: Literal["seedance-1-5-pro-251215"]
+    first_frame: Optional[str] = Field(
+        default=None,
+        description="The URL of the first frame image."
+    )
+    last_frame: Optional[str] = Field(
+        default=None,
+        description="The URL of the last frame image."
+    )
+    resolution: Literal["480p", "720p"] = Field(
+        default="720p",
+        description="The resolution of the output video."
+    )
+    ratio: Literal[
+        "16:9",
+        "4:3",
+        "1:1",
+        "3:4",
+        "9:16",
+        "21:9",
+        "adaptive"
+    ] = Field(
+        default="adaptive",
+        description="The aspect ratio of the output video."
+    )
+    duration: int = Field(
+        default=5,
+        ge=4,
+        le=12,
+        description="The duration of the output video"
+    )
+    framepersecond: int = Field(
+        default=24,
+        ge=24,
+        le=24,
+        description="The frame rate of the output video."
+    )
+    watermark: Optional[bool] = Field(
+        default=False,
+        description="Whether to add a watermark to the output video."
+    )
+    seed: Optional[int] = Field(
+        default=-1,
+        description="Random seed for video generation. If not provided, a random seed will be used."
+    )
+    camerafixed: Optional[bool] = Field(
+        default=False,
+        description="Specifies whether to fix the camera."
+    )
+    generate_audio: bool = Field(
+        default=True,
+        description="Whether to generate audio for the video."
+    )
+
+    @field_serializer("first_frame", when_used="always")
+    def serialize_first_frame(self, v: HttpUrl, _info):
+        return str(v) if v else None
+
+    @field_serializer("last_frame", when_used="always")
+    def serialize_last_frame(self, v: HttpUrl, _info):
+        return str(v) if v else None
+
+
 BytePlusVideoGenerationRequest = Annotated[
     Union[
         Seedance_1_0_Pro_Params,
         Seedance_1_0_Lite_I2V_Params,
-        Seedance_1_0_Pro_Fast_Params
+        Seedance_1_0_Pro_Fast_Params,
+        Seedance_1_5_Pro_Params
     ],
     Field(discriminator="model")
 ]
