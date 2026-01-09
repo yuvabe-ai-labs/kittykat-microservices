@@ -44,9 +44,8 @@ class BytePlusVideoGenerationService:
                         "image_url": {"url": str(frame)},
                     }
 
-                    if request.model in ["seedance-1-0-lite-i2v-250428", "seedance-1-0-pro-250528"]:
+                    if request.model in ["seedance-1-0-lite-i2v-250428", "seedance-1-0-pro-250528", "seedance-1-5-pro-251215"]:
                         item["role"] = role
-
 
                     content.append(item)
 
@@ -67,10 +66,17 @@ class BytePlusVideoGenerationService:
                 else:
                     logger.info(f"No content filter found for model {model}")
 
+            extra_kwargs = {}
+
+            # Please use `request.model` here, not `model` as `model` might have been changed to a content filter model
+            if request.model in ["seedance-1-5-pro-251215"]:
+                extra_kwargs["generate_audio"] = request.generate_audio
+
             response = self.byteplus_client.content_generation.tasks.create(
                 callback_url=str(request.webhook_url),
                 model=model,
-                content=content
+                content=content,
+                extra_body=extra_kwargs
             )
 
             res = self.byteplus_client.content_generation.tasks.get(
