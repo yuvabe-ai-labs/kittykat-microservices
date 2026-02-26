@@ -1,13 +1,14 @@
 import copy
 from typing import Any, Dict
 from fastapi import HTTPException, Header
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception, RetryCallState
 from google.api_core.exceptions import (
     ServiceUnavailable,
     InternalServerError,
     DeadlineExceeded,
     BadGateway,
 )
+from config.logger import logger
 
 
 async def verify_api_token(authorization: str = Header(...)):
@@ -70,12 +71,34 @@ def _is_gemini_retryable(exc: BaseException) -> bool:
     return False
 
 
+_GEMINI_MAX_ATTEMPTS = 6
+
+
+def _log_gemini_before_sleep(retry_state: RetryCallState) -> None:
+    exc = retry_state.outcome.exception()
+    wait = retry_state.next_action.sleep
+    logger.warning(
+        f"[Gemini Retry] Attempt {retry_state.attempt_number}/{_GEMINI_MAX_ATTEMPTS} failed | "
+        f"{type(exc).__name__}: {exc} | "
+        f"waiting {wait:.1f}s → attempt {retry_state.attempt_number + 1}"
+    )
+
+
+def _log_gemini_after(retry_state: RetryCallState) -> None:
+    if retry_state.attempt_number > 1 and retry_state.outcome and not retry_state.outcome.failed:
+        logger.info(
+            f"[Gemini Retry] Succeeded on attempt {retry_state.attempt_number}/{_GEMINI_MAX_ATTEMPTS}"
+        )
+
+
 # Reusable decorator for all Gemini API calls.
 # 6 attempts with exponential backoff: 1s → 2s → 4s → 8s → 16s → 16s (~31s total)
 gemini_retry = retry(
     retry=retry_if_exception(_is_gemini_retryable),
     wait=wait_exponential(multiplier=1, min=1, max=16),
-    stop=stop_after_attempt(6),
+    stop=stop_after_attempt(_GEMINI_MAX_ATTEMPTS),
+    before_sleep=_log_gemini_before_sleep,
+    after=_log_gemini_after,
     reraise=True,
 )
 
