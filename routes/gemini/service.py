@@ -9,7 +9,7 @@ from google import genai
 from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig, ImageConfig
 from PIL import Image
 
-from utils.helpers import safe_log_dict
+from utils.helpers import safe_log_dict, gemini_retry
 
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
@@ -36,6 +36,7 @@ class GeminiService:
             logger.error(f"Error generating image: {e}")
             raise e
 
+    @gemini_retry
     def edit_image(self, request: GeminiImageEditRequest):
         try:
             contents = [
@@ -98,6 +99,7 @@ class GeminiService:
             logger.error(f"Error editing image: {e}")
             raise e
 
+    @gemini_retry
     def generate_vton_image(self, request: GeminiVirtualTryOnRequest) -> ImageResponse:
         try:
             prompt = VIRTUAL_TRY_ON_BASE_PROMPT
@@ -148,6 +150,7 @@ class GeminiService:
             logger.error(f"Error generating virtual try-on image: {e}")
             raise e
 
+    @gemini_retry
     def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview, NanoBananaPro]) -> ImageResponse:
 
         contents = [
@@ -195,6 +198,7 @@ class GeminiService:
             model_usage=response.usage_metadata
         )
 
+    @gemini_retry
     def generate_image_with_imagen(self, request: Union[Imagen4FastGenerateParams,
                                                         Imagen4GenerateParams, Imagen4UltraGenerateParams]) -> ImageResponse:
         response = self.gemini_client.models.generate_images(
