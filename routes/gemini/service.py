@@ -15,6 +15,7 @@ from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
                      GeminiImageGenerationRequest, Imagen4FastGenerateParams,
                      Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest, NanoBananaPro)
+import json
 
 
 class GeminiService:
@@ -165,57 +166,63 @@ class GeminiService:
         logger.info(
             f"Generating image via multimodal with model: {request.model}, aspect_ratio: {request.aspect_ratio}")
 
-        contents = [
-            Content(role="user", parts=[Part.from_text(text=request.prompt)])]
+        try:
+            contents = [
+                Content(role="user", parts=[Part.from_text(text=request.prompt)])]
 
-        if request.reference_images:
-            logger.info(
-                f"Attaching {len(request.reference_images)} reference image(s)")
-            for image_url in request.reference_images:
-                contents.append(
-                    GeminiServiceUtils.convert_url_to_image_like(image_url))
+            if request.reference_images:
+                logger.info(
+                    f"Attaching {len(request.reference_images)} reference image(s)")
+                for image_url in request.reference_images:
+                    contents.append(
+                        GeminiServiceUtils.convert_url_to_image_like(image_url))
 
-        response = self.gemini_client.models.generate_content(
-            model=request.model,
-            contents=contents,
-            config=GenerateContentConfig(
-                response_modalities=['Image'],
-                image_config=ImageConfig(
-                    aspect_ratio=None if request.aspect_ratio == "auto" else request.aspect_ratio,
-                    image_size=request.resolution if hasattr(
-                        request, "resolution") else None,
+            response = self.gemini_client.models.generate_content(
+                model=request.model,
+                contents=contents,
+                config=GenerateContentConfig(
+                    response_modalities=['Image'],
+                    image_config=ImageConfig(
+                        aspect_ratio=None if request.aspect_ratio == "auto" else request.aspect_ratio,
+                        image_size=request.resolution if hasattr(
+                            request, "resolution") else None,
+                    )
                 )
             )
-        )
 
-        asset_base64s = []
+            asset_base64s = []
 
-        if response.candidates and response.candidates[0].content:
-            for part in response.candidates[0].content.parts:
-                if part.inline_data is not None:
-                    data = part.inline_data.data
-                    b64_string = base64.b64encode(data).decode('utf-8')
-                    asset_base64s.append(b64_string)
+            if response.candidates and response.candidates[0].content:
+                for part in response.candidates[0].content.parts:
+                    if part.inline_data is not None:
+                        data = part.inline_data.data
+                        b64_string = base64.b64encode(data).decode('utf-8')
+                        asset_base64s.append(b64_string)
 
-        if not asset_base64s:
-            logger.warning(
-                f"Multimodal response returned no images, possible NSFW content. HTTP response: {response.sdk_http_response}")
-            # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
-            return ImageResponse(
-                error=response.to_json_dict(),
-                is_nsfw_detected=True,
+            if not asset_base64s:
+                logger.warning(
+                    f"Multimodal response returned no images, possible NSFW content. HTTP response: {response.sdk_http_response}")
+                # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
+                return ImageResponse(
+                    error=response.to_json_dict(),
+                    is_nsfw_detected=True,
+                    model_usage=response.usage_metadata
+                )
+
+            logger.info(
+                f"Image generated successfully via multimodal with model {request.model}, images: {len(asset_base64s)}")
+            image_response = ImageResponse(
+                asset_base64s=asset_base64s,
+                model_response=safe_log_dict(response.to_json_dict()),
                 model_usage=response.usage_metadata
             )
+            self._log_multimodal_response(image_response)
+            return image_response
 
-        logger.info(
-            f"Image generated successfully via multimodal with model {request.model}, images: {len(asset_base64s)}")
-        image_response = ImageResponse(
-            asset_base64s=asset_base64s,
-            model_response=safe_log_dict(response.to_json_dict()),
-            model_usage=response.usage_metadata
-        )
-        self._log_multimodal_response(image_response)
-        return image_response
+        except Exception as e:
+            logger.error(
+                f"Error generating image via multimodal with model {request.model}: {e}")
+            raise e
 
     @staticmethod
     def _log_multimodal_response(image_response: ImageResponse) -> None:
@@ -237,8 +244,8 @@ class GeminiService:
                 "thoughts_token_count": usage.get("thoughts_token_count"),
             },
         }
-        import json
-        logger.info(f"Multimodal image response:\n{json.dumps(log_data, indent=2)}")
+        logger.info(
+            f"Multimodal image response:\n{json.dumps(log_data, indent=2)}")
 
     def generate_image_with_imagen(self, request: Union[Imagen4FastGenerateParams,
                                                         Imagen4GenerateParams, Imagen4UltraGenerateParams]) -> ImageResponse:
