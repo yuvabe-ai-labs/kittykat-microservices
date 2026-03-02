@@ -167,7 +167,58 @@ class Seedream45Params(BaseParams):
         return values
 
 
+class Seedream5LiteParams(BaseParams):
+    model: Literal["seedream-5-0-260128"]
+    prompt: str
+    image: Optional[List[str]] = Field(
+        default=None,
+        description="List of base64 encoded images or image URLs to be used as references.",
+        max_items=14,
+    )
+    size: Literal["2K", "3K", "2048x2048", "2304x1728", "1728x2304", "2560x1440", "1440x2560", "2496x1664", "1664x2496", "3024x1296"] = Field(
+        default="2K",
+        description="Size of the generated image. Options are '2K', '3K'.",
+    )
+    seed: int = Field(
+        default=-1,
+        description="Seed for random number generator. Use -1 for random seed.",
+    )
+    max_images: Optional[int] = Field(
+        default=None,
+        description="Maximum number of images to generate. Default is 1. Max is 15.",
+        ge=1,
+        le=15,
+    )
+    sequential_image_generation: Literal["auto", "disabled"] = Field(
+        default="disabled",
+        description="Whether to use sequential image generation. Options are 'auto' and 'disabled'. Default is 'auto'.",
+    )
+    stream: bool = Field(
+        default=False,
+        description="Whether to stream the response. Default is False.",
+    )
+    watermark: bool = Field(
+        default=False,
+        description="Whether to add a watermark to the generated image. Default is False.",
+    )
+    aspect_ratio: Literal["auto", "1:1", "2:3", "3:2", "3:4", "4:3", "9:16", "16:9"] = Field(
+        "auto", description="Aspect ratio of the generated images."
+    )
+    optimize_prompt_options: Optional[bool] = Field(
+        default=False,
+        description="Whether to optimize the prompt for better generation results"
+    )
+
+    @model_validator(mode="after")
+    def check_total_images(cls, values):
+        total = len(values.image or []) + (values.max_images or 0)
+        if total > 15:
+            raise ValueError(
+                f"Total images (references + generated) cannot exceed 15. Got {total}.")
+        return values
+
+
 BytePlusImageGenerationRequest = Union[Seeddream_3_Params,
-                                       Seedream4Params, Seedream45Params]
+                                       Seedream4Params, Seedream45Params, Seedream5LiteParams]
 BytePlusImageEditRequest = Union[SeedEdit_3_Params,
-                                 Seedream4Params, Seedream45Params]
+                                 Seedream4Params, Seedream45Params, Seedream5LiteParams]
