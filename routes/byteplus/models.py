@@ -167,7 +167,7 @@ class Seedream45Params(BaseParams):
         return values
 
 
-class Seedream_5_0_Lite_Params(BaseParams):
+class Seedream5LiteParams(BaseParams):
     model: Literal["seedream-5-0-260128"]
     prompt: str
     image: Optional[List[str]] = Field(
@@ -219,6 +219,6 @@ class Seedream_5_0_Lite_Params(BaseParams):
 
 
 BytePlusImageGenerationRequest = Union[Seeddream_3_Params,
-                                       Seedream4Params, Seedream45Params, Seedream_5_0_Lite_Params]
+                                       Seedream4Params, Seedream45Params, Seedream5LiteParams]
 BytePlusImageEditRequest = Union[SeedEdit_3_Params,
-                                 Seedream4Params, Seedream45Params]
+                                 Seedream4Params, Seedream45Params, Seedream5LiteParams]
