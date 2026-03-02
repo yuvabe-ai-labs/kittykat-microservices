@@ -208,6 +208,9 @@ class Seedream5LiteParams(BaseParams):
         default=False,
         description="Whether to optimize the prompt for better generation results"
     )
+    output_format: Literal["png", "jpeg"] = Field(
+        default="jpeg",
+    )
 
     @model_validator(mode="after")
     def check_total_images(cls, values):
