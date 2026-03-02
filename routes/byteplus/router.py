@@ -20,7 +20,7 @@ async def generate_image(
     try:
         byteplus_service = BytePlusService()
 
-        if request.model in ["seedream-4-0-250828", "seedream-4-5-251128"]:
+        if request.model in ["seedream-4-0-250828", "seedream-4-5-251128", "seedream-5-0-260128"]:
             data = byteplus_service.generate_image_with_seedream_4_suite_models(
                 request=request)
         else:
@@ -55,7 +55,7 @@ async def generate_image(
     try:
         byteplus_service = BytePlusService()
 
-        if request.model in ["seedream-4-0-250828", "seedream-4-5-251128"]:
+        if request.model in ["seedream-4-0-250828", "seedream-4-5-251128", "seedream-5-0-260128"]:
             data = byteplus_service.generate_image_with_seedream_4_suite_models(
                 request=request)
         else:
