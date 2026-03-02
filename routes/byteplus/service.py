@@ -177,6 +177,7 @@ class BytePlusService:
                 "sequential_image_generation_options": {
                     "max_images": request.max_images
                 },
+                "output_format": request.output_format
             }
 
             response = requests.post(
