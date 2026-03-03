@@ -1,5 +1,6 @@
 import base64
 import io
+from typing import Union
 
 import requests
 from byteplussdkarkruntime import Ark
@@ -12,7 +13,9 @@ from routes.byteplus.constants import (BYTEPLUS_NFSW_ERROR_CODES,
                                        model_content_filters)
 from routes.byteplus.models import (BytePlusImageEditRequest,
                                     BytePlusImageGenerationRequest,
-                                    Seedream4Params)
+                                    Seedream4Params,
+                                    Seedream45Params,
+                                    Seedream5LiteParams)
 
 
 class BytePlusService:
@@ -130,7 +133,8 @@ class BytePlusService:
                 is_nsfw_detected=False,
             )
 
-    def generate_image_with_seedream_4_suite_models(self, request: Seedream4Params) -> ImageResponse:
+    def generate_image_with_seedream_4_suite_models(self, request: Union[
+            Seedream4Params, Seedream45Params, Seedream5LiteParams]) -> ImageResponse:
         try:
             logger.info(
                 f"Generating image with Seedream 4 model. Payload: {request.model_dump()}")
@@ -173,6 +177,7 @@ class BytePlusService:
                 "sequential_image_generation_options": {
                     "max_images": request.max_images
                 },
+                "output_format": request.output_format
             }
 
             response = requests.post(
