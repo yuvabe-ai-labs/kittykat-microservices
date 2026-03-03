@@ -177,8 +177,10 @@ class BytePlusService:
                 "sequential_image_generation_options": {
                     "max_images": request.max_images
                 },
-                "output_format": request.output_format
             }
+
+            if isinstance(request, Seedream5LiteParams):
+                payload["output_format"] = request.output_format
 
             response = requests.post(
                 url, headers=headers, json=payload, timeout=600)
