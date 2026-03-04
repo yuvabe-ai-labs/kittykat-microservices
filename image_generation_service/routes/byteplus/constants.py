@@ -1,3 +1,5 @@
+MAX_PIXELS = 36_000_000
+
 BYTEPLUS_NFSW_ERROR_CODES = [
     "SensitiveContentDetected",
     "SensitiveContentDetected.SevereViolation",
