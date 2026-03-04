@@ -10,6 +10,7 @@ from config.logger import logger
 from core.models import ImageResponse
 from PIL import Image
 from routes.byteplus.constants import (BYTEPLUS_NFSW_ERROR_CODES,
+                                       MAX_PIXELS,
                                        model_content_filters)
 from routes.byteplus.models import (BytePlusImageEditRequest,
                                     BytePlusImageGenerationRequest,
@@ -241,6 +242,17 @@ class BytePlusServiceUtils:
             response.raise_for_status()
 
             image = Image.open(io.BytesIO(response.content))
+
+            # Resize if total pixels exceed MAX_PIXELS
+            width, height = image.size
+            if width * height > MAX_PIXELS:
+                scale = (MAX_PIXELS / (width * height)) ** 0.5
+                new_size = (int(width * scale), int(height * scale))
+                logger.info(
+                    f"Resizing image {url} from {width}x{height} ({width * height}px) to "
+                    f"{new_size[0]}x{new_size[1]} ({new_size[0] * new_size[1]}px) for BytePlus pixel limit"
+                )
+                image = image.resize(new_size, Image.LANCZOS)
 
             # Handle transparency (RGBA → RGB)
             if image.mode in ("RGBA", "LA"):
