@@ -14,7 +14,8 @@ from utils.helpers import safe_log_dict, gemini_retry
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
                      GeminiImageGenerationRequest, Imagen4FastGenerateParams,
-                     Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest, NanoBananaPro)
+                     Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest, NanoBananaPro,
+                     NanoBanana2, NanoBanana2Edit)
 import json
 
 
@@ -28,7 +29,7 @@ class GeminiService:
         logger.info(f"Generating image with model: {request.model}")
         try:
             match request.model:
-                case "gemini-2.5-flash-image" | "gemini-2.5-flash-image-preview" | "gemini-3-pro-image-preview":
+                case "gemini-2.5-flash-image" | "gemini-2.5-flash-image-preview" | "gemini-3-pro-image-preview" | "gemini-3.1-flash-image-preview":
                     return self.generate_image_with_multimodal(request)
 
                 case "imagen-4.0-generate-001" | "imagen-4.0-ultra-generate-001" | "imagen-4.0-fast-generate-001":
@@ -165,7 +166,7 @@ class GeminiService:
             raise e
 
     @gemini_retry
-    def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview, NanoBananaPro]) -> ImageResponse:
+    def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview, NanoBananaPro, NanoBanana2]) -> ImageResponse:
         logger.info(
             f"Generating image via multimodal with model: {request.model}, aspect_ratio: {request.aspect_ratio}")
 
