@@ -51,6 +51,27 @@ class NanoBananaPro(BaseImageModel):
     )
 
 
+class NanoBanana2(BaseImageModel):
+    model: Literal["gemini-3.1-flash-image-preview"] = Field(
+        "gemini-3.1-flash-image-preview",
+        description="The model to use for image generation.",
+    )
+    reference_images: Optional[List[str]] = Field(
+        default=None,
+        min_length=1,
+        max_length=14,
+        description="List of URLs of reference images to guide the image generation.",
+    )
+    aspect_ratio: Literal[
+        "auto", "1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+    ] = Field(
+        "auto", description="Aspect ratio of the generated images."
+    )
+    resolution: Literal["512px", "1K", "2K", "4K"] = Field(
+        "2K", description="Resolution of the generated images."
+    )
+
+
 class Gemini_2_5_Flash_Image_Preview_Edit(BaseImageModel):
     model: Literal["gemini-2.5-flash-image-preview"] = Field(
         "gemini-2.5-flash-image-preview",
@@ -100,6 +121,31 @@ class NanoBananaProEdit(BaseImageModel):
     )
 
 
+class NanoBanana2Edit(BaseImageModel):
+    model: Literal["gemini-3.1-flash-image-preview"] = Field(
+        "gemini-3.1-flash-image-preview",
+        description="The model to use for image generation.",
+    )
+    base_image: str = Field(
+        ...,
+        description="URL of the base image to be edited.",
+    )
+    reference_images: Optional[List[str]] = Field(
+        default=None,
+        min_length=1,
+        max_length=13,
+        description="List of URLs of reference images to guide the image generation.",
+    )
+    aspect_ratio: Literal[
+        "auto", "1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"
+    ] = Field(
+        "auto", description="Aspect ratio of the generated images."
+    )
+    resolution: Literal["512px", "1K", "2K", "4K"] = Field(
+        "2K", description="Resolution of the generated images."
+    )
+
+
 class Imagen4GenerateParams(BaseModel):
     model: Literal["imagen-4.0-generate-001"]
     prompt: str = Field(...,
@@ -141,10 +187,12 @@ GeminiImageGenerationRequest = Union[Gemini_2_5_Flash_Image_Preview,
                                      Imagen4GenerateParams,
                                      Imagen4UltraGenerateParams,
                                      Imagen4FastGenerateParams,
-                                     NanoBananaPro
+                                     NanoBananaPro,
+                                     NanoBanana2
                                      ]
 GeminiImageEditRequest = Union[Gemini_2_5_Flash_Image_Preview_Edit,
-                               NanoBananaProEdit]
+                               NanoBananaProEdit,
+                               NanoBanana2Edit]
 
 
 class GeminiVirtualTryOnRequest(BaseModel):
