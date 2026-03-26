@@ -1,13 +1,14 @@
 import base64
-from io import BytesIO
+import json
 from typing import List, Union
 
+import json as _json
+from google.oauth2 import service_account
 from config.env import config
 from config.logger import logger
 from core.models import ImageResponse
 from google import genai
 from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig, ImageConfig
-from PIL import Image
 from services.gcp import upload_base64_to_gcp
 
 from utils.helpers import safe_log_dict, gemini_retry
@@ -17,7 +18,6 @@ from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
                      GeminiImageGenerationRequest, Imagen4FastGenerateParams,
                      Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest, NanoBananaPro,
                      NanoBanana2, NanoBanana2Edit)
-import json
 
 
 class GeminiService:
@@ -56,15 +56,9 @@ class GeminiService:
             contents = [
                 Content(role="user", parts=[Part.from_text(text=request.prompt)])]
 
-            if request.reference_images:
-                logger.info(
-                    f"Attaching {len(request.reference_images)} reference image(s)")
-                for image_url in request.reference_images:
-                    contents.append(GeminiServiceUtils.convert_url_to_image_like(
-                        image_url))
-
-            contents.append(GeminiServiceUtils.convert_url_to_image_like(
-                request.base_image))
+            image_uris = list(request.reference_images or []) + [request.base_image]
+            registered = GeminiServiceUtils.register_gcs_files(image_uris)
+            contents.extend(registered)
 
             aspect_ratio = request.aspect_ratio if (
                 hasattr(request, "aspect_ratio") and request.aspect_ratio != "auto") else None
@@ -130,10 +124,8 @@ class GeminiService:
 
             contents = [
                 Content(role="user", parts=[Part.from_text(text=prompt)])]
-            contents.append(GeminiServiceUtils.convert_url_to_image_like(
-                request.product_image))
-            contents.append(GeminiServiceUtils.convert_url_to_image_like(
-                request.model_image))
+            registered = GeminiServiceUtils.register_gcs_files([request.product_image, request.model_image])
+            contents.extend(registered)
 
             response = self.gemini_client.models.generate_content(
                 model=request.model,
@@ -186,11 +178,8 @@ class GeminiService:
                 Content(role="user", parts=[Part.from_text(text=request.prompt)])]
 
             if request.reference_images:
-                logger.info(
-                    f"Attaching {len(request.reference_images)} reference image(s)")
-                for image_url in request.reference_images:
-                    contents.append(
-                        GeminiServiceUtils.convert_url_to_image_like(image_url))
+                registered = GeminiServiceUtils.register_gcs_files(list(request.reference_images))
+                contents.extend(registered)
 
             response = self.gemini_client.models.generate_content(
                 model=request.model,
@@ -304,17 +293,36 @@ class GeminiService:
 
 
 class GeminiServiceUtils:
+    _oauth_client: genai.Client = None
+    _gcs_creds: service_account.Credentials = None
+
+    @classmethod
+    def _get_oauth_client(cls) -> tuple[genai.Client, service_account.Credentials]:
+        if cls._oauth_client is None:
+            sa_info = _json.loads(base64.b64decode(config.BUCKET_SA_KEY).decode("utf-8"))
+            cls._gcs_creds = service_account.Credentials.from_service_account_info(
+                sa_info,
+                scopes=[
+                    'https://www.googleapis.com/auth/cloud-platform',
+                    'https://www.googleapis.com/auth/devstorage.read_only'
+                ]
+            ).with_quota_project(sa_info["project_id"])
+            cls._oauth_client = genai.Client(credentials=cls._gcs_creds)
+        return cls._oauth_client, cls._gcs_creds
+
     @staticmethod
-    def convert_url_to_image_like(url: str) -> Image.Image:
-        try:
-            import requests
+    def to_gcs_uri(url: str) -> str:
+        if url.startswith("gs://"):
+            return url
+        if "storage.googleapis.com/" in url:
+            path = url.split("storage.googleapis.com/", 1)[1].split("?")[0]
+            return f"gs://{path}"
+        return url
 
-            response = requests.get(url)
-            response.raise_for_status()
-
-            image = Image.open(BytesIO(response.content))
-            return image
-        except Exception as e:
-            logger.error(
-                f"Error converting URL to image-like object (url={url}): {e}")
-            raise e
+    @classmethod
+    def register_gcs_files(cls, uris: List[str]) -> list:
+        oauth_client, creds = cls._get_oauth_client()
+        gcs_uris = [cls.to_gcs_uri(u) for u in uris]
+        logger.info(f"Registering {len(gcs_uris)} GCS file(s): {gcs_uris}")
+        result = oauth_client.files.register_files(uris=gcs_uris, auth=creds)
+        return result.files
