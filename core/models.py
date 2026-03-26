@@ -26,6 +26,10 @@ class ImageResponse(BaseModel, Generic[TUsage]):
         default=False,
         description="Indicates if NSFW content was detected in the prompt or image generated.",
     )
+    invalid_parameter_error: Optional[str] = Field(
+        default=None,
+        description="Human-readable description of the specific invalid parameter error, if identifiable.",
+    )
     model_response: Optional[dict] = Field(
         default=None,
         description="Raw response from the Model API.",
