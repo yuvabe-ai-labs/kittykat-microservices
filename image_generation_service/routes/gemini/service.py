@@ -1,8 +1,8 @@
 import base64
 import json
 from typing import List, Union
+from urllib.parse import unquote
 
-import json as _json
 from google.oauth2 import service_account
 from config.env import config
 from config.logger import logger
@@ -346,7 +346,7 @@ class GeminiServiceUtils:
     @classmethod
     def _get_oauth_client(cls) -> tuple[genai.Client, service_account.Credentials]:
         if cls._oauth_client is None:
-            sa_info = _json.loads(
+            sa_info = json.loads(
                 base64.b64decode(config.BUCKET_SA_KEY).decode("utf-8")
             )
             cls._gcs_creds = service_account.Credentials.from_service_account_info(
@@ -365,7 +365,7 @@ class GeminiServiceUtils:
             return url
         if "storage.googleapis.com/" in url:
             path = url.split("storage.googleapis.com/", 1)[1].split("?")[0]
-            return f"gs://{path}"
+            return f"gs://{unquote(path)}"
         return url
 
     @classmethod
