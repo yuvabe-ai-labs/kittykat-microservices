@@ -3,17 +3,14 @@ from config.logger import logger
 from core.models import ImageResponse
 from core.utils import BaseApiResponse
 from fastapi import APIRouter, status
-from .models import (ImageEditRequest, ImageGenerationRequest,
-                     VirtualTryOnRequest)
+from .models import ImageEditRequest, ImageGenerationRequest, VirtualTryOnRequest
 from .service import OpenAIService
 
 router = APIRouter(prefix="/openai")
 
 
 @router.post("/generate", response_model=BaseApiResponse[ImageResponse])
-async def generate_image(
-    request: ImageGenerationRequest
-):
+async def generate_image(request: ImageGenerationRequest):
     """
     Generate an image using OpenAI's image generation API.
     """
@@ -25,7 +22,7 @@ async def generate_image(
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
             message="Image generated successfully.",
-            data=data
+            data=data,
         )
     except openai.BadRequestError as e:
         logger.error(f"OpenAI BadRequestError: {e}")
@@ -33,9 +30,8 @@ async def generate_image(
             status_code=status.HTTP_400_BAD_REQUEST,
             message="Invalid request parameters. Please check your input.",
             data=ImageResponse(
-                error=str(e),
-                is_nsfw_detected=e.code == "moderation_blocked"
-            )
+                error=str(e), is_nsfw_detected=e.code == "moderation_blocked"
+            ),
         )
 
     except Exception as e:
@@ -46,7 +42,7 @@ async def generate_image(
             data=ImageResponse(
                 error=str(e),
                 is_nsfw_detected=False,
-            )
+            ),
         )
 
 
@@ -59,7 +55,7 @@ async def edit_image(request: ImageEditRequest):
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
             message="Image edited successfully.",
-            data=data
+            data=data,
         )
     except openai.BadRequestError as e:
         logger.error(f"OpenAI BadRequestError: {e}")
@@ -67,9 +63,8 @@ async def edit_image(request: ImageEditRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             message="Invalid request parameters. Please check your input.",
             data=ImageResponse(
-                error=str(e),
-                is_nsfw_detected=e.code == "moderation_blocked"
-            )
+                error=str(e), is_nsfw_detected=e.code == "moderation_blocked"
+            ),
         )
 
     except Exception as e:
@@ -80,7 +75,7 @@ async def edit_image(request: ImageEditRequest):
             data=ImageResponse(
                 error=str(e),
                 is_nsfw_detected=False,
-            )
+            ),
         )
 
 
@@ -97,7 +92,7 @@ async def vton_image(request: VirtualTryOnRequest):
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
             message="Virtual try on image generated successfully.",
-            data=data
+            data=data,
         )
 
     except openai.BadRequestError as e:
@@ -106,9 +101,8 @@ async def vton_image(request: VirtualTryOnRequest):
             status_code=status.HTTP_400_BAD_REQUEST,
             message="Invalid request parameters. Please check your input.",
             data=ImageResponse(
-                error=str(e),
-                is_nsfw_detected=e.code == "moderation_blocked"
-            )
+                error=str(e), is_nsfw_detected=e.code == "moderation_blocked"
+            ),
         )
 
     except Exception as e:
@@ -119,5 +113,5 @@ async def vton_image(request: VirtualTryOnRequest):
             data=ImageResponse(
                 error=str(e),
                 is_nsfw_detected=False,
-            )
+            ),
         )
