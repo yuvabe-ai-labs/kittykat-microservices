@@ -1,5 +1,16 @@
 MAX_PIXELS = 36_000_000
 
+BYTEPLUS_INVALID_PARAMETER_ERROR_CODES = [
+    "InvalidParameter",
+]
+
+# Maps substrings found in BytePlus error messages to user-friendly descriptions.
+# Checked in order; first match wins.
+BYTEPLUS_INVALID_PARAMETER_MESSAGES: list[tuple[str, str]] = [
+    ("expected the pixel to be at most",
+     "Reference Image pixel exceeds limit. Please try with smaller image."),
+]
+
 BYTEPLUS_NFSW_ERROR_CODES = [
     "SensitiveContentDetected",
     "SensitiveContentDetected.SevereViolation",
