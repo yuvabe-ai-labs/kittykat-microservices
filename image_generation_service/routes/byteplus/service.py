@@ -1,5 +1,6 @@
 import base64
 import io
+from typing import Union
 
 import requests
 from byteplussdkarkruntime import Ark
@@ -9,10 +10,13 @@ from config.logger import logger
 from core.models import ImageResponse
 from PIL import Image
 from routes.byteplus.constants import (BYTEPLUS_NFSW_ERROR_CODES,
+                                       MAX_PIXELS,
                                        model_content_filters)
 from routes.byteplus.models import (BytePlusImageEditRequest,
                                     BytePlusImageGenerationRequest,
-                                    Seedream4Params)
+                                    Seedream4Params,
+                                    Seedream45Params,
+                                    Seedream5LiteParams)
 
 
 class BytePlusService:
@@ -130,7 +134,8 @@ class BytePlusService:
                 is_nsfw_detected=False,
             )
 
-    def generate_image_with_seedream_4_suite_models(self, request: Seedream4Params) -> ImageResponse:
+    def generate_image_with_seedream_4_suite_models(self, request: Union[
+            Seedream4Params, Seedream45Params, Seedream5LiteParams]) -> ImageResponse:
         try:
             logger.info(
                 f"Generating image with Seedream 4 model. Payload: {request.model_dump()}")
@@ -174,6 +179,9 @@ class BytePlusService:
                     "max_images": request.max_images
                 },
             }
+
+            if isinstance(request, Seedream5LiteParams):
+                payload["output_format"] = request.output_format
 
             response = requests.post(
                 url, headers=headers, json=payload, timeout=600)
@@ -234,6 +242,17 @@ class BytePlusServiceUtils:
             response.raise_for_status()
 
             image = Image.open(io.BytesIO(response.content))
+
+            # Resize if total pixels exceed MAX_PIXELS
+            width, height = image.size
+            if width * height > MAX_PIXELS:
+                scale = (MAX_PIXELS / (width * height)) ** 0.5
+                new_size = (int(width * scale), int(height * scale))
+                logger.info(
+                    f"Resizing image {url} from {width}x{height} ({width * height}px) to "
+                    f"{new_size[0]}x{new_size[1]} ({new_size[0] * new_size[1]}px) for BytePlus pixel limit"
+                )
+                image = image.resize(new_size, Image.LANCZOS)
 
             # Handle transparency (RGBA → RGB)
             if image.mode in ("RGBA", "LA"):

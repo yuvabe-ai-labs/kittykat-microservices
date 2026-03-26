@@ -1,6 +1,6 @@
 import base64
 from io import BytesIO
-from typing import Union
+from typing import List, Union
 
 from config.env import config
 from config.logger import logger
@@ -8,13 +8,15 @@ from core.models import ImageResponse
 from google import genai
 from google.genai.types import Content, Part, GenerateImagesConfig, GenerateContentConfig, ImageConfig
 from PIL import Image
+from services.gcp import upload_base64_to_gcp
 
 from utils.helpers import safe_log_dict, gemini_retry
 
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
 from .models import (Gemini_2_5_Flash_Image_Preview, GeminiImageEditRequest,
                      GeminiImageGenerationRequest, Imagen4FastGenerateParams,
-                     Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest, NanoBananaPro)
+                     Imagen4GenerateParams, Imagen4UltraGenerateParams, GeminiVirtualTryOnRequest, NanoBananaPro,
+                     NanoBanana2, NanoBanana2Edit)
 import json
 
 
@@ -24,11 +26,19 @@ class GeminiService:
             api_key=config.GEMINI_API_KEY
         )
 
+    @staticmethod
+    def _upload_base64s(base64_list: List[str]) -> List[str]:
+        urls = []
+        for b64 in base64_list:
+            url = upload_base64_to_gcp(b64)
+            urls.append(url)
+        return urls
+
     def generate_image(self, request: GeminiImageGenerationRequest) -> ImageResponse:
         logger.info(f"Generating image with model: {request.model}")
         try:
             match request.model:
-                case "gemini-2.5-flash-image" | "gemini-2.5-flash-image-preview" | "gemini-3-pro-image-preview":
+                case "gemini-2.5-flash-image" | "gemini-2.5-flash-image-preview" | "gemini-3-pro-image-preview" | "gemini-3.1-flash-image-preview":
                     return self.generate_image_with_multimodal(request)
 
                 case "imagen-4.0-generate-001" | "imagen-4.0-ultra-generate-001" | "imagen-4.0-fast-generate-001":
@@ -95,8 +105,9 @@ class GeminiService:
             logger.info(
                 f"Edited image successfully with model {request.model}")
 
+            asset_urls = self._upload_base64s(asset_base64s)
             return ImageResponse(
-                asset_base64s=asset_base64s,
+                asset_urls=asset_urls,
                 model_response=safe_log_dict(response.to_json_dict()),
                 model_usage=response.usage_metadata
             )
@@ -153,8 +164,9 @@ class GeminiService:
 
             logger.info(
                 f"Virtual try-on image generated successfully with model {request.model}")
+            asset_urls = self._upload_base64s(asset_base64s)
             return ImageResponse(
-                asset_base64s=asset_base64s,
+                asset_urls=asset_urls,
                 model_response=safe_log_dict(response.to_json_dict()),
                 model_usage=response.usage_metadata
             )
@@ -165,7 +177,7 @@ class GeminiService:
             raise e
 
     @gemini_retry
-    def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview, NanoBananaPro]) -> ImageResponse:
+    def generate_image_with_multimodal(self, request: Union[Gemini_2_5_Flash_Image_Preview, NanoBananaPro, NanoBanana2]) -> ImageResponse:
         logger.info(
             f"Generating image via multimodal with model: {request.model}, aspect_ratio: {request.aspect_ratio}")
 
@@ -214,8 +226,9 @@ class GeminiService:
 
             logger.info(
                 f"Image generated successfully via multimodal with model {request.model}, images: {len(asset_base64s)}")
+            asset_urls = self._upload_base64s(asset_base64s)
             image_response = ImageResponse(
-                asset_base64s=asset_base64s,
+                asset_urls=asset_urls,
                 model_response=safe_log_dict(response.to_json_dict()),
                 model_usage=response.usage_metadata
             )
@@ -236,7 +249,7 @@ class GeminiService:
         log_data = {
             "is_nsfw_detected": image_response.is_nsfw_detected,
             "error": image_response.error,
-            "images_count": len(image_response.asset_base64s) if image_response.asset_base64s else 0,
+            "images_count": len(image_response.asset_urls) if image_response.asset_urls else 0,
             "model_version": model_response.get("model_version"),
             "response_id": model_response.get("response_id"),
             "finish_reason": candidates[0].get("finish_reason") if candidates else None,
@@ -283,8 +296,9 @@ class GeminiService:
 
         logger.info(
             f"Image generated successfully via Imagen with model {request.model}, images: {len(asset_base64s)}")
+        asset_urls = self._upload_base64s(asset_base64s)
         return ImageResponse(
-            asset_base64s=asset_base64s,
+            asset_urls=asset_urls,
             model_response=safe_log_dict(response.to_json_dict()),
         )
 

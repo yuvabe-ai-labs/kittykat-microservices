@@ -1,3 +1,5 @@
+MAX_PIXELS = 36_000_000
+
 BYTEPLUS_NFSW_ERROR_CODES = [
     "SensitiveContentDetected",
     "SensitiveContentDetected.SevereViolation",
@@ -17,5 +19,6 @@ model_content_filters = {
     "seedream-3-0-t2i-250415": "ep-20250903154649-477dp",
     "seedance-1-0-pro-250528": "ep-20250903154721-qxf8s",
     "seedream-4-0-250828": "ep-20250915181943-q7m8f",
-    "seedream-4-5-251128": "ep-20251211124912-5q5gn"
+    "seedream-4-5-251128": "ep-20251211124912-5q5gn",
+    "seedream-5-0-260128": "ep-20260302190537-pwvnb",
 }
