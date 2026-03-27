@@ -10,6 +10,8 @@ from config.logger import logger
 from core.models import ImageResponse
 from PIL import Image
 from routes.byteplus.constants import (BYTEPLUS_NFSW_ERROR_CODES,
+                                       BYTEPLUS_INVALID_PARAMETER_ERROR_CODES,
+                                       BYTEPLUS_INVALID_PARAMETER_MESSAGES,
                                        MAX_PIXELS,
                                        model_content_filters)
 from routes.byteplus.models import (BytePlusImageEditRequest,
@@ -17,6 +19,15 @@ from routes.byteplus.models import (BytePlusImageEditRequest,
                                     Seedream4Params,
                                     Seedream45Params,
                                     Seedream5LiteParams)
+
+
+def _resolve_invalid_parameter_message(code: str, message: str):
+    if code not in BYTEPLUS_INVALID_PARAMETER_ERROR_CODES:
+        return None
+    return next(
+        (msg for pattern, msg in BYTEPLUS_INVALID_PARAMETER_MESSAGES if pattern in message),
+        None
+    )
 
 
 class BytePlusService:
@@ -55,9 +66,12 @@ class BytePlusService:
                 f"BytePlus image generation result:  {result.model_dump()}")
 
             if result.data is None or len(result.data) == 0:
+                err = result.error
                 return ImageResponse(
-                    error=result.error.model_dump() if result.error else "Unknown error",
-                    is_nsfw_detected=result.error.code in BYTEPLUS_NFSW_ERROR_CODES if result.error else False,
+                    error=err.model_dump() if err else "Unknown error",
+                    is_nsfw_detected=err.code in BYTEPLUS_NFSW_ERROR_CODES if err else False,
+                    invalid_parameter_error=_resolve_invalid_parameter_message(
+                        err.code, err.message or "") if err else None,
                     model_response=result.model_dump()
                 )
 
@@ -110,9 +124,12 @@ class BytePlusService:
                 f"BytePlus image edit result:  {result.model_dump()}")
 
             if result.data is None or len(result.data) == 0:
+                err = result.error
                 return ImageResponse(
-                    error=result.error.model_dump() if result.error else "Unknown error",
-                    is_nsfw_detected=result.error.code in BYTEPLUS_NFSW_ERROR_CODES if result.error else False,
+                    error=err.model_dump() if err else "Unknown error",
+                    is_nsfw_detected=err.code in BYTEPLUS_NFSW_ERROR_CODES if err else False,
+                    invalid_parameter_error=_resolve_invalid_parameter_message(
+                        err.code, err.message or "") if err else None,
                     model_response=result.model_dump()
                 )
 
@@ -172,7 +189,7 @@ class BytePlusService:
                 "seed": request.seed,
                 "watermark": request.watermark,
                 "response_format": "url",
-                "image": [BytePlusServiceUtils.convert_url_to_base64_png(img) for img in request.image] if request.image else None,
+                "image": request.image if request.image else None,
                 "sequential_image_generation": request.sequential_image_generation,
                 "stream": request.stream,
                 "sequential_image_generation_options": {
@@ -193,10 +210,13 @@ class BytePlusService:
                 if response.status_code == 400:
                     response = response.json()
                     error = response.get("error", {})
+                    error_code = error.get("code")
+                    invalid_message = _resolve_invalid_parameter_message(
+                        error_code, error.get("message", ""))
                     return ImageResponse(
                         error=response,
-                        is_nsfw_detected=True if error.get(
-                            "code") in BYTEPLUS_NFSW_ERROR_CODES else False,
+                        is_nsfw_detected=True if error_code in BYTEPLUS_NFSW_ERROR_CODES else False,
+                        invalid_parameter_error=invalid_message,
                     )
                 else:
                     return ImageResponse(
