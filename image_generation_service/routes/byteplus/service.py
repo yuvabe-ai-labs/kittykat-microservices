@@ -1,9 +1,11 @@
+import asyncio
 import base64
 import io
 from typing import Union
 
+import httpx
 import requests
-from byteplussdkarkruntime import Ark
+from byteplussdkarkruntime import AsyncArk
 from byteplussdkarkruntime._exceptions import ArkBadRequestError
 from config.env import config
 from config.logger import logger
@@ -32,11 +34,11 @@ def _resolve_invalid_parameter_message(code: str, message: str):
 
 class BytePlusService:
     def __init__(self):
-        self.byteplus_client = Ark(
+        self.byteplus_client = AsyncArk(
             api_key=config.BYTEPLUS_API_KEY
         )
 
-    def generate_image(self, request: BytePlusImageGenerationRequest) -> ImageResponse:
+    async def generate_image(self, request: BytePlusImageGenerationRequest) -> ImageResponse:
         try:
             model = request.model
 
@@ -52,7 +54,7 @@ class BytePlusService:
                 else:
                     logger.info(f"No content filter found for model {model}")
 
-            result = self.byteplus_client.images.generate(
+            result = await self.byteplus_client.images.generate(
                 model=model,
                 prompt=request.prompt,
                 size=request.size,
@@ -93,7 +95,7 @@ class BytePlusService:
                 is_nsfw_detected=False,
             )
 
-    def edit_image(self, request: BytePlusImageEditRequest) -> ImageResponse:
+    async def edit_image(self, request: BytePlusImageEditRequest) -> ImageResponse:
         try:
             model = request.model
             if request.content_filter_disabled:
@@ -108,7 +110,7 @@ class BytePlusService:
                 else:
                     logger.info(f"No content filter found for model {model}")
 
-            result = self.byteplus_client.images.generate(
+            result = await self.byteplus_client.images.generate(
                 model=model,
                 prompt=request.prompt,
                 size=request.size,
@@ -116,8 +118,8 @@ class BytePlusService:
                 seed=request.seed,
                 watermark=request.watermark,
                 response_format="url",
-                image=BytePlusServiceUtils.convert_url_to_base64_png(
-                    request.image)
+                image=await asyncio.to_thread(
+                    BytePlusServiceUtils.convert_url_to_base64_png, request.image)
             )
 
             logger.info(
@@ -151,7 +153,7 @@ class BytePlusService:
                 is_nsfw_detected=False,
             )
 
-    def generate_image_with_seedream_4_suite_models(self, request: Union[
+    async def generate_image_with_seedream_4_suite_models(self, request: Union[
             Seedream4Params, Seedream45Params, Seedream5LiteParams]) -> ImageResponse:
         try:
             logger.info(
@@ -200,8 +202,8 @@ class BytePlusService:
             if isinstance(request, Seedream5LiteParams):
                 payload["output_format"] = request.output_format
 
-            response = requests.post(
-                url, headers=headers, json=payload, timeout=600)
+            async with httpx.AsyncClient(timeout=600) as http_client:
+                response = await http_client.post(url, headers=headers, json=payload)
 
             if response.status_code != 200:
                 logger.error(
