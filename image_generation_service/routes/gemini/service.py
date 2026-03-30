@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import json
 from typing import List, Union
@@ -40,14 +41,12 @@ class GeminiService:
         self.gemini_client = genai.Client(api_key=config.GEMINI_API_KEY)
 
     @staticmethod
-    def _upload_base64s(base64_list: List[str]) -> List[str]:
-        urls = []
-        for b64 in base64_list:
-            url = upload_base64_to_gcp(b64)
-            urls.append(url)
-        return urls
+    async def _upload_base64s(base64_list: List[str]) -> List[str]:
+        return list(await asyncio.gather(
+            *[asyncio.to_thread(upload_base64_to_gcp, b64) for b64 in base64_list]
+        ))
 
-    def generate_image(self, request: GeminiImageGenerationRequest) -> ImageResponse:
+    async def generate_image(self, request: GeminiImageGenerationRequest) -> ImageResponse:
         logger.info(f"Generating image with model: {request.model}")
         try:
             match request.model:
@@ -57,21 +56,21 @@ class GeminiService:
                     | "gemini-3-pro-image-preview"
                     | "gemini-3.1-flash-image-preview"
                 ):
-                    return self.generate_image_with_multimodal(request)
+                    return await self.generate_image_with_multimodal(request)
 
                 case (
                     "imagen-4.0-generate-001"
                     | "imagen-4.0-ultra-generate-001"
                     | "imagen-4.0-fast-generate-001"
                 ):
-                    return self.generate_image_with_imagen(request)
+                    return await self.generate_image_with_imagen(request)
 
         except Exception as e:
             logger.error(f"Error generating image with model {request.model}: {e}")
             raise e
 
     @gemini_retry
-    def edit_image(self, request: GeminiImageEditRequest):
+    async def edit_image(self, request: GeminiImageEditRequest):
         logger.info(f"Editing image with model: {request.model}")
         try:
             contents = [
@@ -79,7 +78,7 @@ class GeminiService:
             ]
 
             image_uris = list(request.reference_images or []) + [request.base_image]
-            registered = GeminiServiceUtils.register_gcs_files(image_uris)
+            registered = await GeminiServiceUtils.register_gcs_files(image_uris)
             contents.extend(registered)
 
             aspect_ratio = (
@@ -89,7 +88,7 @@ class GeminiService:
             )
             resolution = request.resolution if hasattr(request, "resolution") else None
 
-            response = self.gemini_client.models.generate_content(
+            response = await self.gemini_client.aio.models.generate_content(
                 model=request.model,
                 contents=contents,
                 config=GenerateContentConfig(
@@ -122,7 +121,7 @@ class GeminiService:
 
             logger.info(f"Edited image successfully with model {request.model}")
 
-            asset_urls = self._upload_base64s(asset_base64s)
+            asset_urls = await self._upload_base64s(asset_base64s)
             return ImageResponse(
                 asset_urls=asset_urls,
                 model_response=safe_log_dict(response.to_json_dict()),
@@ -134,7 +133,7 @@ class GeminiService:
             raise e
 
     @gemini_retry
-    def generate_vton_image(self, request: GeminiVirtualTryOnRequest) -> ImageResponse:
+    async def generate_vton_image(self, request: GeminiVirtualTryOnRequest) -> ImageResponse:
         logger.info(f"Generating virtual try-on image with model: {request.model}")
         try:
             prompt = VIRTUAL_TRY_ON_BASE_PROMPT
@@ -144,12 +143,12 @@ class GeminiService:
                 prompt += f"Additional instructions: {request.prompt}"
 
             contents = [Content(role="user", parts=[Part.from_text(text=prompt)])]
-            registered = GeminiServiceUtils.register_gcs_files(
+            registered = await GeminiServiceUtils.register_gcs_files(
                 [request.product_image, request.model_image]
             )
             contents.extend(registered)
 
-            response = self.gemini_client.models.generate_content(
+            response = await self.gemini_client.aio.models.generate_content(
                 model=request.model,
                 contents=contents,
                 config=GenerateContentConfig(response_modalities=["Image"]),
@@ -178,7 +177,7 @@ class GeminiService:
             logger.info(
                 f"Virtual try-on image generated successfully with model {request.model}"
             )
-            asset_urls = self._upload_base64s(asset_base64s)
+            asset_urls = await self._upload_base64s(asset_base64s)
             return ImageResponse(
                 asset_urls=asset_urls,
                 model_response=safe_log_dict(response.to_json_dict()),
@@ -192,7 +191,7 @@ class GeminiService:
             raise e
 
     @gemini_retry
-    def generate_image_with_multimodal(
+    async def generate_image_with_multimodal(
         self, request: Union[Gemini_2_5_Flash_Image_Preview, NanoBananaPro, NanoBanana2]
     ) -> ImageResponse:
         logger.info(
@@ -205,12 +204,12 @@ class GeminiService:
             ]
 
             if request.reference_images:
-                registered = GeminiServiceUtils.register_gcs_files(
+                registered = await GeminiServiceUtils.register_gcs_files(
                     list(request.reference_images)
                 )
                 contents.extend(registered)
 
-            response = self.gemini_client.models.generate_content(
+            response = await self.gemini_client.aio.models.generate_content(
                 model=request.model,
                 contents=contents,
                 config=GenerateContentConfig(
@@ -253,7 +252,7 @@ class GeminiService:
             logger.info(
                 f"Image generated successfully via multimodal with model {request.model}, images: {len(asset_base64s)}"
             )
-            asset_urls = self._upload_base64s(asset_base64s)
+            asset_urls = await self._upload_base64s(asset_base64s)
             image_response = ImageResponse(
                 asset_urls=asset_urls,
                 model_response=safe_log_dict(response.to_json_dict()),
@@ -293,7 +292,7 @@ class GeminiService:
         logger.info(f"Multimodal image response:\n{json.dumps(log_data, indent=2)}")
 
     @gemini_retry
-    def generate_image_with_imagen(
+    async def generate_image_with_imagen(
         self,
         request: Union[
             Imagen4FastGenerateParams, Imagen4GenerateParams, Imagen4UltraGenerateParams
@@ -302,7 +301,7 @@ class GeminiService:
         logger.info(
             f"Generating image via Imagen with model: {request.model}, n: {request.n}, aspect_ratio: {request.aspect_ratio}"
         )
-        response = self.gemini_client.models.generate_images(
+        response = await self.gemini_client.aio.models.generate_images(
             model=request.model,
             prompt=request.prompt,
             config=GenerateImagesConfig(
@@ -332,7 +331,7 @@ class GeminiService:
         logger.info(
             f"Image generated successfully via Imagen with model {request.model}, images: {len(asset_base64s)}"
         )
-        asset_urls = self._upload_base64s(asset_base64s)
+        asset_urls = await self._upload_base64s(asset_base64s)
         return ImageResponse(
             asset_urls=asset_urls,
             model_response=safe_log_dict(response.to_json_dict()),
@@ -369,9 +368,11 @@ class GeminiServiceUtils:
         return url
 
     @classmethod
-    def register_gcs_files(cls, uris: List[str]) -> list:
+    async def register_gcs_files(cls, uris: List[str]) -> list:
         oauth_client, creds = cls._get_oauth_client()
         gcs_uris = [cls.to_gcs_uri(u) for u in uris]
         logger.info(f"Registering {len(gcs_uris)} GCS file(s): {gcs_uris}")
-        result = oauth_client.files.register_files(uris=gcs_uris, auth=creds)
+        result = await asyncio.to_thread(
+            oauth_client.files.register_files, uris=gcs_uris, auth=creds
+        )
         return result.files
