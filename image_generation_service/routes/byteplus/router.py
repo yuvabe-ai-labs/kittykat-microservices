@@ -21,10 +21,10 @@ async def generate_image(
         byteplus_service = BytePlusService()
 
         if request.model in ["seedream-4-0-250828", "seedream-4-5-251128", "seedream-5-0-260128"]:
-            data = byteplus_service.generate_image_with_seedream_4_suite_models(
+            data = await byteplus_service.generate_image_with_seedream_4_suite_models(
                 request=request)
         else:
-            data = byteplus_service.generate_image(request=request)
+            data = await byteplus_service.generate_image(request)
 
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
@@ -56,10 +56,10 @@ async def generate_image(
         byteplus_service = BytePlusService()
 
         if request.model in ["seedream-4-0-250828", "seedream-4-5-251128", "seedream-5-0-260128"]:
-            data = byteplus_service.generate_image_with_seedream_4_suite_models(
+            data = await byteplus_service.generate_image_with_seedream_4_suite_models(
                 request=request)
         else:
-            data = byteplus_service.edit_image(request=request)
+            data = await byteplus_service.edit_image(request)
 
         return BaseApiResponse(
             status_code=status.HTTP_200_OK,
