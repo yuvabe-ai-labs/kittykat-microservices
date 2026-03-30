@@ -1,4 +1,5 @@
 fastapi[standard]
+gunicorn
 numpy
 pillow
 onnxruntime
