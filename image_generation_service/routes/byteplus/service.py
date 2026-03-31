@@ -7,6 +7,7 @@ import httpx
 import requests
 from byteplussdkarkruntime import AsyncArk
 from byteplussdkarkruntime._exceptions import ArkBadRequestError
+from utils.helpers import byteplus_retry
 from config.env import config
 from config.logger import logger
 from core.models import ImageResponse
@@ -38,6 +39,7 @@ class BytePlusService:
             api_key=config.BYTEPLUS_API_KEY
         )
 
+    @byteplus_retry
     async def generate_image(self, request: BytePlusImageGenerationRequest) -> ImageResponse:
         try:
             model = request.model
@@ -90,11 +92,9 @@ class BytePlusService:
             )
         except Exception as e:
             logger.error(f"Error generating image using {request.model}: {e}")
-            return ImageResponse(
-                error=str(e),
-                is_nsfw_detected=False,
-            )
+            raise e
 
+    @byteplus_retry
     async def edit_image(self, request: BytePlusImageEditRequest) -> ImageResponse:
         try:
             model = request.model
@@ -148,11 +148,9 @@ class BytePlusService:
             )
         except Exception as e:
             logger.error(f"Error remixing image using {request.model}: {e}")
-            return ImageResponse(
-                error=str(e),
-                is_nsfw_detected=False,
-            )
+            raise e
 
+    @byteplus_retry
     async def generate_image_with_seedream_4_suite_models(self, request: Union[
             Seedream4Params, Seedream45Params, Seedream5LiteParams]) -> ImageResponse:
         try:
@@ -220,6 +218,12 @@ class BytePlusService:
                         is_nsfw_detected=True if error_code in BYTEPLUS_NFSW_ERROR_CODES else False,
                         invalid_parameter_error=invalid_message,
                     )
+                elif response.status_code >= 500:
+                    raise httpx.HTTPStatusError(
+                        f"HTTP {response.status_code}: {response.text}",
+                        request=response.request,
+                        response=response,
+                    )
                 else:
                     return ImageResponse(
                         error=f"HTTP {response.status_code}: {response.text}",
@@ -246,14 +250,9 @@ class BytePlusService:
                 model_response=result,
                 model_usage=result.get("usage"),
             )
-
         except Exception as e:
             logger.error(f"Error generating image with Seedream 4: {e}")
-            return ImageResponse(
-                error=str(e),
-                is_nsfw_detected=False,
-                model_response=None
-            )
+            raise e
 
 
 class BytePlusServiceUtils:
