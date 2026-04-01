@@ -1,3 +1,4 @@
+import asyncio
 import base64
 from io import BytesIO
 from typing import List, Optional
@@ -7,6 +8,7 @@ from config.logger import logger
 from core.models import ImageResponse
 from PIL import Image, ImageOps
 from services.gcp import upload_base64_to_gcp
+from utils.helpers import openai_retry
 
 from .config import client
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
@@ -16,14 +18,13 @@ from .models import (ImageEditRequest, ImageGenerationRequest,
 
 class OpenAIService:
     @staticmethod
-    def _upload_base64s(base64_list: List[str]) -> List[str]:
-        urls = []
-        for b64 in base64_list:
-            url = upload_base64_to_gcp(b64)
-            urls.append(url)
-        return urls
+    async def _upload_base64s(base64_list: List[str]) -> List[str]:
+        return await asyncio.gather(
+            *[asyncio.to_thread(upload_base64_to_gcp, b64) for b64 in base64_list]
+        )
 
-    def generate_image(self, request: ImageGenerationRequest) -> ImageResponse:
+    @openai_retry
+    async def generate_image(self, request: ImageGenerationRequest) -> ImageResponse:
         try:
             content = [
                 {"type": "input_image", "image_url": url}
@@ -42,7 +43,7 @@ class OpenAIService:
                 "moderation": request.parameters.moderation,
             }
 
-            result = client.responses.create(
+            result = await client.responses.create(
                 model="gpt-4o",
                 input=[{"role": "user", "content": content}],
                 tools=[tool],
@@ -55,7 +56,7 @@ class OpenAIService:
                 if item.type == "image_generation_call" and item.result
             ]
 
-            asset_urls = self._upload_base64s(asset_b64s)
+            asset_urls = await self._upload_base64s(asset_b64s)
 
             return ImageResponse(
                 asset_urls=asset_urls,
@@ -67,7 +68,8 @@ class OpenAIService:
             logger.error(f"Error generating image: {e}")
             raise e
 
-    def edit_image(self, request: ImageEditRequest) -> ImageResponse:
+    @openai_retry
+    async def edit_image(self, request: ImageEditRequest) -> ImageResponse:
         try:
             content = [{"type": "input_image",
                         "image_url": request.base_image}]
@@ -86,12 +88,13 @@ class OpenAIService:
             }
 
             if request.mask_image:
-                mask_b64 = OpenAIServiceUtils.url_to_mask_b64_safe(
-                    request.mask_image)
+                mask_b64 = await asyncio.to_thread(
+                    OpenAIServiceUtils.url_to_mask_b64_safe, request.mask_image
+                )
                 if mask_b64:
                     tool["input_image_mask"] = {"image_url": mask_b64}
 
-            result = client.responses.create(
+            result = await client.responses.create(
                 model="gpt-4o",
                 input=[{"role": "user", "content": content}],
                 tools=[tool],
@@ -104,7 +107,7 @@ class OpenAIService:
                 if item.type == "image_generation_call" and item.result
             ]
 
-            asset_urls = self._upload_base64s(asset_base64s)
+            asset_urls = await self._upload_base64s(asset_base64s)
 
             return ImageResponse(
                 asset_urls=asset_urls,
@@ -116,7 +119,8 @@ class OpenAIService:
             logger.error(f"Error editing image: {e}")
             raise e
 
-    def generate_vton_image(self, request: VirtualTryOnRequest) -> ImageResponse:
+    @openai_retry
+    async def generate_vton_image(self, request: VirtualTryOnRequest) -> ImageResponse:
         try:
             prompt = VIRTUAL_TRY_ON_BASE_PROMPT
             if request.prompt:
@@ -138,7 +142,7 @@ class OpenAIService:
                 "output_compression": request.parameters.output_compression,
             }
 
-            result = client.responses.create(
+            result = await client.responses.create(
                 model="gpt-4o",
                 input=[{"role": "user", "content": content}],
                 tools=[tool],
@@ -151,7 +155,7 @@ class OpenAIService:
                 if item.type == "image_generation_call" and item.result
             ]
 
-            asset_urls = self._upload_base64s(asset_b64s)
+            asset_urls = await self._upload_base64s(asset_b64s)
 
             return ImageResponse(
                 asset_urls=asset_urls,

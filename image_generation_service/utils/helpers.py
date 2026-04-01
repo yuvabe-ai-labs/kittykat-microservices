@@ -14,6 +14,7 @@ from byteplussdkarkruntime._exceptions import (
     ArkAPITimeoutError,
     ArkAPIConnectionError,
 )
+import openai
 from config.logger import logger
 
 
@@ -163,6 +164,62 @@ byteplus_retry = retry(
     stop=stop_after_attempt(_BYTEPLUS_MAX_ATTEMPTS),
     before_sleep=_log_byteplus_before_sleep,
     after=_log_byteplus_after,
+    reraise=True,
+)
+
+
+_OPENAI_MAX_ATTEMPTS = 6
+
+
+def _is_openai_retryable(exc: BaseException) -> bool:
+    """
+    Returns True for errors that should be retried against the OpenAI API.
+    Handles:
+    - SDK timeout and connection errors
+    - 500/502/503/504 status errors from the OpenAI SDK
+    - String fallback for unexpected exception wrappers
+    """
+    if isinstance(exc, (openai.APITimeoutError, openai.APIConnectionError)):
+        return True
+    if isinstance(exc, openai.APIStatusError) and exc.status_code in (500, 502, 503, 504):
+        return True
+    error_message = str(exc)
+    if (
+        "503" in error_message
+        or "502" in error_message
+        or "500" in error_message
+        or "overloaded" in error_message.lower()
+        or "UNAVAILABLE" in error_message
+    ):
+        return True
+    return False
+
+
+def _log_openai_before_sleep(retry_state: RetryCallState) -> None:
+    exc = retry_state.outcome.exception()
+    wait = retry_state.next_action.sleep
+    logger.warning(
+        f"[OpenAI Retry] Attempt {retry_state.attempt_number}/{_OPENAI_MAX_ATTEMPTS} failed | "
+        f"{type(exc).__name__}: {exc} | "
+        f"waiting {wait:.1f}s → attempt {retry_state.attempt_number + 1}"
+    )
+
+
+def _log_openai_after(retry_state: RetryCallState) -> None:
+    if retry_state.attempt_number > 1 and retry_state.outcome and not retry_state.outcome.failed:
+        logger.info(
+            f"[OpenAI Retry] Succeeded on attempt {retry_state.attempt_number}/{_OPENAI_MAX_ATTEMPTS}"
+        )
+
+
+# Reusable decorator for all OpenAI API calls.
+# 6 attempts with exponential backoff: 1s → 2s → 4s → 8s → 16s → 16s (~31s total)
+openai_retry = retry(
+    retry=retry_if_exception(_is_openai_retryable),
+    wait=wait_exponential(multiplier=1, min=1, max=16),
+    stop=stop_after_attempt(_OPENAI_MAX_ATTEMPTS),
+    before_sleep=_log_openai_before_sleep,
+    after=_log_openai_after,
     reraise=True,
 )
 
