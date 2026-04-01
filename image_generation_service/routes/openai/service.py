@@ -1,15 +1,12 @@
-import os
+import base64
 from io import BytesIO
-from typing import Optional
-from urllib.parse import urlparse
+from typing import List, Optional
 
 import requests
 from config.logger import logger
 from core.models import ImageResponse
-from openai import NotGiven
 from PIL import Image, ImageOps
-
-from utils.helpers import safe_log_dict
+from services.gcp import upload_base64_to_gcp
 
 from .config import client
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
@@ -18,62 +15,52 @@ from .models import (ImageEditRequest, ImageGenerationRequest,
 
 
 class OpenAIService:
+    @staticmethod
+    def _upload_base64s(base64_list: List[str]) -> List[str]:
+        urls = []
+        for b64 in base64_list:
+            url = upload_base64_to_gcp(b64)
+            urls.append(url)
+        return urls
+
     def generate_image(self, request: ImageGenerationRequest) -> ImageResponse:
         try:
-            # Reference images
-            reference_image_files = [
-                f for url in (request.reference_images or [])
-                if (f := OpenAIServiceUtils.url_to_file_safe(url)) is not None
+            content = [
+                {"type": "input_image", "image_url": url}
+                for url in (request.reference_images or [])
             ]
+            content.append({"type": "input_text", "text": request.prompt})
 
-            logger.info(
-                request.model_dump_json(
-                    indent=2
-                )
+            tool = {
+                "type": "image_generation",
+                "model": "gpt-image-1",
+                "size": request.parameters.size,
+                "quality": request.parameters.quality,
+                "background": request.parameters.background,
+                "output_format": request.parameters.output_format,
+                "output_compression": request.parameters.output_compression,
+                "moderation": request.parameters.moderation,
+            }
+
+            result = client.responses.create(
+                model="gpt-4o",
+                input=[{"role": "user", "content": content}],
+                tools=[tool],
+                tool_choice={"type": "image_generation"},
             )
 
-            if len(reference_image_files) == 0:
-                result = client.images.generate(
-                    model=request.model,
-                    prompt=request.prompt,
-                    size=request.parameters.size,
-                    background=request.parameters.background,
-                    quality=request.parameters.quality,
-                    output_format=request.parameters.output_format,
-                    moderation=request.parameters.moderation,
-                    output_compression=request.parameters.output_compression,
-                    n=request.parameters.n
-                )
+            asset_b64s = [
+                item.result
+                for item in result.output
+                if item.type == "image_generation_call" and item.result
+            ]
 
-            else:
-                # IMPORTANT: Not to use generate image function as it does not support reference images
-                result = client.images.edit(
-                    model=request.model,
-                    size=request.parameters.size,
-                    background=request.parameters.background,
-                    quality=request.parameters.quality,
-                    n=request.parameters.n,
-                    prompt=request.prompt,
-                    image=reference_image_files,
-                    output_compression=request.parameters.output_compression,
-                    output_format=request.parameters.output_format,
-                )
-
-            asset_b64s = []
-
-            for image in result.data:
-                image_base64 = image.b64_json
-
-                if not image_base64:
-                    continue
-
-                asset_b64s.append(image_base64)
+            asset_urls = self._upload_base64s(asset_b64s)
 
             return ImageResponse(
-                asset_base64s=asset_b64s,
+                asset_urls=asset_urls,
                 model_response=result.model_dump(),
                 model_usage=result.usage.model_dump() if result.usage else None
-
             )
 
         except Exception as e:
@@ -82,50 +69,45 @@ class OpenAIService:
 
     def edit_image(self, request: ImageEditRequest) -> ImageResponse:
         try:
-            # Mask image
-            masked_image = OpenAIServiceUtils.url_to_mask_file_safe(
-                request.mask_image) if request.mask_image else NotGiven
+            content = [{"type": "input_image",
+                        "image_url": request.base_image}]
+            for url in (request.reference_images or []):
+                content.append({"type": "input_image", "image_url": url})
+            content.append({"type": "input_text", "text": request.prompt})
 
-            # Base image
-            base_image_file = OpenAIServiceUtils.url_to_file_safe(
-                request.base_image)
-            if base_image_file is None:
-                raise ValueError("Base image could not be downloaded.")
+            tool = {
+                "type": "image_generation",
+                "model": "gpt-image-1",
+                "size": request.parameters.size,
+                "quality": request.parameters.quality,
+                "background": request.parameters.background,
+                "output_format": request.parameters.output_format,
+                "output_compression": request.parameters.output_compression,
+            }
 
-            # Reference images
-            reference_image_files = [
-                f for url in (request.reference_images or [])
-                if (f := OpenAIServiceUtils.url_to_file_safe(url)) is not None
-            ]
+            if request.mask_image:
+                mask_b64 = OpenAIServiceUtils.url_to_mask_b64_safe(
+                    request.mask_image)
+                if mask_b64:
+                    tool["input_image_mask"] = {"image_url": mask_b64}
 
-            # OpenAI treates first image as base and rest as references
-            image_files = [base_image_file] + reference_image_files
-
-            result = client.images.edit(
-                model="gpt-image-1",
-                size=request.parameters.size,
-                background=request.parameters.background,
-                quality=request.parameters.quality,
-                n=request.parameters.n,
-                prompt=request.prompt,
-                output_compression=request.parameters.output_compression,
-                output_format=request.parameters.output_format,
-                image=image_files,
-                **({"mask": masked_image} if masked_image is not NotGiven else {})
+            result = client.responses.create(
+                model="gpt-4o",
+                input=[{"role": "user", "content": content}],
+                tools=[tool],
+                tool_choice={"type": "image_generation"}
             )
 
-            asset_base64s = []
+            asset_base64s = [
+                item.result
+                for item in result.output
+                if item.type == "image_generation_call" and item.result
+            ]
 
-            for image in result.data:
-                image_base64 = image.b64_json
-
-                if not image_base64:
-                    continue
-
-                asset_base64s.append(image_base64)
+            asset_urls = self._upload_base64s(asset_base64s)
 
             return ImageResponse(
-                asset_base64s=asset_base64s,
+                asset_urls=asset_urls,
                 model_response=result.model_dump(),
                 model_usage=result.usage.model_dump() if result.usage else None
             )
@@ -136,40 +118,45 @@ class OpenAIService:
 
     def generate_vton_image(self, request: VirtualTryOnRequest) -> ImageResponse:
         try:
-            print(request.product_image)
-            image_files = [
-                OpenAIServiceUtils.url_to_file_safe(request.model_image),
-                OpenAIServiceUtils.url_to_file_safe(request.product_image),
-            ]
-
             prompt = VIRTUAL_TRY_ON_BASE_PROMPT
-
             if request.prompt:
                 prompt += f"\nAdditional instructions: {request.prompt}"
 
-            result = client.images.edit(
-                model="gpt-image-1",
-                size=request.parameters.size,
-                background="auto",
-                quality=request.parameters.quality,
-                n=request.parameters.n,
-                prompt=prompt,
-                image=image_files
+            content = [
+                {"type": "input_image", "image_url": request.model_image},
+                {"type": "input_image", "image_url": request.product_image},
+                {"type": "input_text", "text": prompt},
+            ]
+
+            tool = {
+                "type": "image_generation",
+                "model": "gpt-image-1",
+                "size": request.parameters.size,
+                "quality": request.parameters.quality,
+                "background": "auto",
+                "output_format": request.parameters.output_format,
+                "output_compression": request.parameters.output_compression,
+            }
+
+            result = client.responses.create(
+                model="gpt-4o",
+                input=[{"role": "user", "content": content}],
+                tools=[tool],
+                tool_choice={"type": "image_generation"}
             )
 
-            asset_b64s = []
+            asset_b64s = [
+                item.result
+                for item in result.output
+                if item.type == "image_generation_call" and item.result
+            ]
 
-            for image in result.data:
-                image_base64 = image.b64_json
-                if not image_base64:
-                    continue
-                asset_b64s.append(image_base64)
+            asset_urls = self._upload_base64s(asset_b64s)
 
             return ImageResponse(
-                asset_base64s=asset_b64s,
+                asset_urls=asset_urls,
                 model_response=result.model_dump(),
                 model_usage=result.usage.model_dump() if result.usage else None
-
             )
 
         except Exception as e:
@@ -222,30 +209,24 @@ class OpenAIServiceUtils:
             return None
 
     @staticmethod
-    def url_to_mask_file_safe(url: str) -> Optional[BytesIO]:
+    def url_to_mask_b64_safe(url: str) -> Optional[str]:
+        """Downloads mask, inverts it, converts to RGBA PNG, returns as base64 data URL."""
         try:
             response = requests.get(url, timeout=30)
             response.raise_for_status()
 
             img = Image.open(BytesIO(response.content))
-
-            # 1. Load your black & white mask as a grayscale image
             mask = img.convert("L")
-
             mask_inverted = ImageOps.invert(mask)
-
-            # 2. Convert it to RGBA so it has space for an alpha channel
             mask_rgba = mask_inverted.convert("RGBA")
-
-            # 3. Then use the mask itself to fill that alpha channel
             mask_rgba.putalpha(mask_inverted)
 
             buf = BytesIO()
-            img.save(buf, format="PNG")
+            mask_rgba.save(buf, format="PNG")
             buf.seek(0)
-            buf.name = "mask.png"
-            return buf
+            b64 = base64.b64encode(buf.read()).decode("utf-8")
+            return f"data:image/png;base64,{b64}"
 
         except Exception as e:
-            logger.info(f"Failed to validate or convert mask image: {e}")
+            logger.info(f"Failed to process mask image: {e}")
             return None
