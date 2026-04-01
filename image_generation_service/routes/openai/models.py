@@ -13,9 +13,6 @@ class OpenAIImageGenerationParameters(BaseModel):
     # Only used in generate, not edit
     moderation: Literal["auto", "low"] = Field(default="auto")
     output_compression: int = Field(default=100, ge=0, le=100)
-    n: int = Field(
-        default=1, ge=1, le=10, description="Number of images to generate (1-10). Default is 1."
-    )
 
 
 class ImageGenerationRequest(BaseModel):
