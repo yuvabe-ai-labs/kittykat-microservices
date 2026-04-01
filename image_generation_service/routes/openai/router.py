@@ -17,7 +17,7 @@ async def generate_image(request: ImageGenerationRequest):
     try:
         openai_service = OpenAIService()
 
-        data = openai_service.generate_image(request=request)
+        data = await openai_service.generate_image(request=request)
 
         print(f"[generate] asset_urls={data.asset_urls} | parameters={request.parameters} | model_usage={data.model_usage}")
 
@@ -52,7 +52,7 @@ async def generate_image(request: ImageGenerationRequest):
 async def edit_image(request: ImageEditRequest):
     try:
         openai_service = OpenAIService()
-        data = openai_service.edit_image(request=request)
+        data = await openai_service.edit_image(request=request)
 
         print(f"[edit] asset_urls={data.asset_urls} | parameters={request.parameters} | model_usage={data.model_usage}")
 
@@ -91,7 +91,7 @@ async def vton_image(request: VirtualTryOnRequest):
     try:
         openai_service = OpenAIService()
 
-        data = openai_service.generate_vton_image(request=request)
+        data = await openai_service.generate_vton_image(request=request)
 
         print(f"[vton] asset_urls={data.asset_urls} | parameters={request.parameters} | model_usage={data.model_usage}")
 
