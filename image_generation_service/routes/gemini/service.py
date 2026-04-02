@@ -103,7 +103,7 @@ class GeminiService:
             asset_base64s = []
 
             if response.candidates and response.candidates[0].content:
-                for part in response.candidates[0].content.parts:
+                for part in (response.candidates[0].content.parts or []):
                     if part.inline_data is not None:
                         data = part.inline_data.data
                         b64_string = base64.b64encode(data).decode("utf-8")
@@ -157,7 +157,7 @@ class GeminiService:
             asset_base64s = []
 
             if response.candidates and response.candidates[0].content:
-                for part in response.candidates[0].content.parts:
+                for part in (response.candidates[0].content.parts or []):
                     if part.inline_data is not None:
                         data = part.inline_data.data
                         b64_string = base64.b64encode(data).decode("utf-8")
@@ -232,7 +232,7 @@ class GeminiService:
             asset_base64s = []
 
             if response.candidates and response.candidates[0].content:
-                for part in response.candidates[0].content.parts:
+                for part in (response.candidates[0].content.parts or []):
                     if part.inline_data is not None:
                         data = part.inline_data.data
                         b64_string = base64.b64encode(data).decode("utf-8")
