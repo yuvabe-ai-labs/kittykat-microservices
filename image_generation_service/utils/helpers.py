@@ -7,6 +7,7 @@ from google.api_core.exceptions import (
     InternalServerError,
     DeadlineExceeded,
     BadGateway,
+    ResourceExhausted,
 )
 import httpx
 from byteplussdkarkruntime._exceptions import (
@@ -53,14 +54,13 @@ def _is_gemini_retryable(exc: BaseException) -> bool:
     """
     Returns True for errors that should be retried against the Gemini API.
     Handles:
-    - Google API 503/500/502/504 transport errors
+    - Google API 503/500/502/504/429 transport errors (incl. ResourceExhausted)
     - SDK AttributeError bug: 503 responses with a string 'error' value cause
       AttributeError: 'str' object has no attribute 'get' in _api_client.py
     """
     try:
-
         if isinstance(
-            exc, (ServiceUnavailable, InternalServerError, DeadlineExceeded, BadGateway)
+            exc, (ServiceUnavailable, InternalServerError, DeadlineExceeded, BadGateway, ResourceExhausted)
         ):
             return True
     except ImportError:
@@ -72,7 +72,9 @@ def _is_gemini_retryable(exc: BaseException) -> bool:
     error_message = str(exc)
     if (
         "503" in error_message
+        or "429" in error_message
         or "overloaded" in error_message.lower()
+        or "RESOURCE_EXHAUSTED" in error_message
         or "UNAVAILABLE" in error_message
     ):
         return True
