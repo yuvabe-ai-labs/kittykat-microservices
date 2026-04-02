@@ -218,6 +218,12 @@ class BytePlusService:
                         is_nsfw_detected=True if error_code in BYTEPLUS_NFSW_ERROR_CODES else False,
                         invalid_parameter_error=invalid_message,
                     )
+                elif response.status_code == 429:
+                    raise httpx.HTTPStatusError(
+                        f"HTTP {response.status_code}: {response.text}",
+                        request=response.request,
+                        response=response,
+                    )
                 elif response.status_code >= 500:
                     raise httpx.HTTPStatusError(
                         f"HTTP {response.status_code}: {response.text}",
