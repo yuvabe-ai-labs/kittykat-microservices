@@ -122,8 +122,7 @@ def _is_byteplus_retryable(exc: BaseException) -> bool:
     Handles:
     - SDK 500/timeout/connection errors from AsyncArk client
     - SDK 429 rate-limit errors (ArkRateLimitError / ServerOverloaded)
-    - httpx 500/502/503/504 errors from direct HTTP path (Seedream 4 suite)
-    - httpx 429 with {"error": {"code": "ServerOverloaded"}} body
+    - httpx 429/500/502/503/504 errors from direct HTTP path (Seedream 4 suite)
     - String fallback for unexpected exception wrappers
     """
     if isinstance(exc, (ArkInternalServerError, ArkAPITimeoutError, ArkAPIConnectionError)):
@@ -134,15 +133,8 @@ def _is_byteplus_retryable(exc: BaseException) -> bool:
     if isinstance(exc, (httpx.TimeoutException, httpx.ConnectError)):
         return True
     if isinstance(exc, httpx.HTTPStatusError):
-        if exc.response.status_code in (500, 502, 503, 504):
+        if exc.response.status_code in (429, 500, 502, 503, 504):
             return True
-        if exc.response.status_code == 429:
-            try:
-                body = exc.response.json()
-                if body.get("error", {}).get("code") == "ServerOverloaded":
-                    return True
-            except Exception:
-                pass
     error_message = str(exc)
     if (
         "503" in error_message
