@@ -13,6 +13,7 @@ from byteplussdkarkruntime._exceptions import (
     ArkInternalServerError,
     ArkAPITimeoutError,
     ArkAPIConnectionError,
+    ArkRateLimitError,
 )
 import openai
 from config.logger import logger
@@ -118,21 +119,35 @@ def _is_byteplus_retryable(exc: BaseException) -> bool:
     Returns True for errors that should be retried against the BytePlus API.
     Handles:
     - SDK 500/timeout/connection errors from AsyncArk client
+    - SDK 429 rate-limit errors (ArkRateLimitError / ServerOverloaded)
     - httpx 500/502/503/504 errors from direct HTTP path (Seedream 4 suite)
+    - httpx 429 with {"error": {"code": "ServerOverloaded"}} body
     - String fallback for unexpected exception wrappers
     """
     if isinstance(exc, (ArkInternalServerError, ArkAPITimeoutError, ArkAPIConnectionError)):
         return True
+    if isinstance(exc, ArkRateLimitError):
+        # 429 ServerOverloaded — transient capacity limit, safe to retry
+        return True
     if isinstance(exc, (httpx.TimeoutException, httpx.ConnectError)):
         return True
-    if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in (500, 502, 503, 504):
-        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        if exc.response.status_code in (500, 502, 503, 504):
+            return True
+        if exc.response.status_code == 429:
+            try:
+                body = exc.response.json()
+                if body.get("error", {}).get("code") == "ServerOverloaded":
+                    return True
+            except Exception:
+                pass
     error_message = str(exc)
     if (
         "503" in error_message
         or "502" in error_message
         or "500" in error_message
         or "overloaded" in error_message.lower()
+        or "ServerOverloaded" in error_message
         or "UNAVAILABLE" in error_message
     ):
         return True
