@@ -16,7 +16,7 @@ from byteplussdkarkruntime._exceptions import (
     ArkAPIConnectionError,
     ArkRateLimitError,
 )
-import openai
+from openai import APIConnectionError, APITimeoutError, APIStatusError, RateLimitError
 from config.logger import logger
 
 
@@ -60,7 +60,8 @@ def _is_gemini_retryable(exc: BaseException) -> bool:
     """
     try:
         if isinstance(
-            exc, (ServiceUnavailable, InternalServerError, DeadlineExceeded, BadGateway, ResourceExhausted)
+            exc, (ServiceUnavailable, InternalServerError,
+                  DeadlineExceeded, BadGateway, ResourceExhausted)
         ):
             return True
     except ImportError:
@@ -188,17 +189,21 @@ def _is_openai_retryable(exc: BaseException) -> bool:
     - 500/502/503/504 status errors from the OpenAI SDK
     - String fallback for unexpected exception wrappers
     """
-    if isinstance(exc, (openai.APITimeoutError, openai.APIConnectionError)):
+    if isinstance(exc, (APITimeoutError, APIConnectionError, )):
         return True
-    if isinstance(exc, openai.APIStatusError) and exc.status_code in (500, 502, 503, 504):
+    if isinstance(exc, APIStatusError) and exc.status_code in (429, 500, 502, 503, 504):
+        return True
+    if isinstance(exc, RateLimitError):
         return True
     error_message = str(exc)
     if (
         "503" in error_message
         or "502" in error_message
         or "500" in error_message
+        or "429" in error_message
         or "overloaded" in error_message.lower()
         or "UNAVAILABLE" in error_message
+        or "Bad Gateway" in error_message
     ):
         return True
     return False
