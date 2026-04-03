@@ -22,7 +22,7 @@ ENV MODEL_PATH="/app/services/onnx_clip/data/clip_text_model_vitb32.onnx"
 # Copy the rest of the application code
 COPY . .
 # Expose the application port
-#EXPOSE 8000
+EXPOSE 8000
 
-# Use Gunicorn as the application server
-#CMD ["gunicorn", "-w", "4", "-k", "sync", "-b", "0.0.0.0:8000", "main:app"]
+# Run with Uvicorn multi-worker mode
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
