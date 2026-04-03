@@ -7,14 +7,16 @@ from google.api_core.exceptions import (
     InternalServerError,
     DeadlineExceeded,
     BadGateway,
+    ResourceExhausted,
 )
 import httpx
 from byteplussdkarkruntime._exceptions import (
     ArkInternalServerError,
     ArkAPITimeoutError,
     ArkAPIConnectionError,
+    ArkRateLimitError,
 )
-import openai
+from openai import APIConnectionError, APITimeoutError, APIStatusError, RateLimitError
 from config.logger import logger
 
 
@@ -48,18 +50,75 @@ def truncate_strings(obj: Any, max_len: int = 500) -> Any:
     return obj
 
 
+GEMINI_NSFW_FINISH_REASONS = {
+    "SAFETY",
+    "RECITATION",
+    "BLOCKLIST",
+    "PROHIBITED_CONTENT",
+    "SPII",
+    "IMAGE_SAFETY",
+    "IMAGE_PROHIBITED_CONTENT",
+    "IMAGE_RECITATION",
+    "NO_IMAGE",
+}
+
+GEMINI_RETRYABLE_FINISH_REASONS = {
+    "MALFORMED_RESPONSE",
+    "MISSING_THOUGHT_SIGNATURE",
+    "TOO_MANY_TOOL_CALLS",
+    "UNEXPECTED_TOOL_CALL",
+    "MALFORMED_FUNCTION_CALL",
+    "MAX_TOKENS",
+    "LANGUAGE",
+    "OTHER",
+    "IMAGE_OTHER",
+}
+
+
+class GeminiRetryableFinishReasonError(Exception):
+    """Raised when Gemini returns a retryable finish reason instead of images."""
+    pass
+
+
+def raise_or_return_nsfw_for_empty_gemini_response(response, image_response_cls):
+    """
+    Call this when a Gemini response contains no images.
+    - NSFW finish reason  → returns ImageResponse(is_nsfw_detected=True)
+    - Retryable / unknown → raises GeminiRetryableFinishReasonError to trigger retry
+    """
+    finish_reason = None
+    if response.candidates:
+        fr = response.candidates[0].finish_reason
+        finish_reason = fr.name if fr is not None else None
+
+    if finish_reason in GEMINI_NSFW_FINISH_REASONS:
+        logger.warning(f"Gemini response blocked with NSFW finish reason: {finish_reason}")
+        return image_response_cls(
+            error=response.to_json_dict(),
+            is_nsfw_detected=True,
+            model_usage=response.usage_metadata,
+        )
+
+    logger.warning(f"Gemini response returned no images with retryable finish reason: {finish_reason}, retrying...")
+    raise GeminiRetryableFinishReasonError(
+        f"Gemini returned no images with finish_reason={finish_reason}"
+    )
+
+
 def _is_gemini_retryable(exc: BaseException) -> bool:
     """
     Returns True for errors that should be retried against the Gemini API.
     Handles:
-    - Google API 503/500/502/504 transport errors
+    - Google API 503/500/502/504/429 transport errors (incl. ResourceExhausted)
     - SDK AttributeError bug: 503 responses with a string 'error' value cause
       AttributeError: 'str' object has no attribute 'get' in _api_client.py
     """
+    if isinstance(exc, GeminiRetryableFinishReasonError):
+        return True
     try:
-
         if isinstance(
-            exc, (ServiceUnavailable, InternalServerError, DeadlineExceeded, BadGateway)
+            exc, (ServiceUnavailable, InternalServerError,
+                  DeadlineExceeded, BadGateway, ResourceExhausted)
         ):
             return True
     except ImportError:
@@ -71,7 +130,9 @@ def _is_gemini_retryable(exc: BaseException) -> bool:
     error_message = str(exc)
     if (
         "503" in error_message
+        or "429" in error_message
         or "overloaded" in error_message.lower()
+        or "RESOURCE_EXHAUSTED" in error_message
         or "UNAVAILABLE" in error_message
     ):
         return True
@@ -118,21 +179,27 @@ def _is_byteplus_retryable(exc: BaseException) -> bool:
     Returns True for errors that should be retried against the BytePlus API.
     Handles:
     - SDK 500/timeout/connection errors from AsyncArk client
-    - httpx 500/502/503/504 errors from direct HTTP path (Seedream 4 suite)
+    - SDK 429 rate-limit errors (ArkRateLimitError / ServerOverloaded)
+    - httpx 429/500/502/503/504 errors from direct HTTP path (Seedream 4 suite)
     - String fallback for unexpected exception wrappers
     """
     if isinstance(exc, (ArkInternalServerError, ArkAPITimeoutError, ArkAPIConnectionError)):
         return True
+    if isinstance(exc, ArkRateLimitError):
+        # 429 ServerOverloaded — transient capacity limit, safe to retry
+        return True
     if isinstance(exc, (httpx.TimeoutException, httpx.ConnectError)):
         return True
-    if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in (500, 502, 503, 504):
-        return True
+    if isinstance(exc, httpx.HTTPStatusError):
+        if exc.response.status_code in (429, 500, 502, 503, 504):
+            return True
     error_message = str(exc)
     if (
         "503" in error_message
         or "502" in error_message
         or "500" in error_message
         or "overloaded" in error_message.lower()
+        or "ServerOverloaded" in error_message
         or "UNAVAILABLE" in error_message
     ):
         return True
@@ -179,17 +246,21 @@ def _is_openai_retryable(exc: BaseException) -> bool:
     - 500/502/503/504 status errors from the OpenAI SDK
     - String fallback for unexpected exception wrappers
     """
-    if isinstance(exc, (openai.APITimeoutError, openai.APIConnectionError)):
+    if isinstance(exc, (APITimeoutError, APIConnectionError)):
         return True
-    if isinstance(exc, openai.APIStatusError) and exc.status_code in (500, 502, 503, 504):
+    if isinstance(exc, APIStatusError) and exc.status_code in (429, 500, 502, 503, 504):
+        return True
+    if isinstance(exc, RateLimitError):
         return True
     error_message = str(exc)
     if (
         "503" in error_message
         or "502" in error_message
         or "500" in error_message
+        or "429" in error_message
         or "overloaded" in error_message.lower()
         or "UNAVAILABLE" in error_message
+        or "Bad Gateway" in error_message
     ):
         return True
     return False
