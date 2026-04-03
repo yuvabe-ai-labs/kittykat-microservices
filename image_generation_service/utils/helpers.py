@@ -189,7 +189,7 @@ def _is_openai_retryable(exc: BaseException) -> bool:
     - 500/502/503/504 status errors from the OpenAI SDK
     - String fallback for unexpected exception wrappers
     """
-    if isinstance(exc, (APITimeoutError, APIConnectionError, )):
+    if isinstance(exc, (APITimeoutError, APIConnectionError)):
         return True
     if isinstance(exc, APIStatusError) and exc.status_code in (429, 500, 502, 503, 504):
         return True
