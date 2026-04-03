@@ -50,6 +50,61 @@ def truncate_strings(obj: Any, max_len: int = 500) -> Any:
     return obj
 
 
+GEMINI_NSFW_FINISH_REASONS = {
+    "SAFETY",
+    "RECITATION",
+    "BLOCKLIST",
+    "PROHIBITED_CONTENT",
+    "SPII",
+    "IMAGE_SAFETY",
+    "IMAGE_PROHIBITED_CONTENT",
+    "IMAGE_RECITATION",
+    "NO_IMAGE",
+}
+
+GEMINI_RETRYABLE_FINISH_REASONS = {
+    "MALFORMED_RESPONSE",
+    "MISSING_THOUGHT_SIGNATURE",
+    "TOO_MANY_TOOL_CALLS",
+    "UNEXPECTED_TOOL_CALL",
+    "MALFORMED_FUNCTION_CALL",
+    "MAX_TOKENS",
+    "LANGUAGE",
+    "OTHER",
+    "IMAGE_OTHER",
+}
+
+
+class GeminiRetryableFinishReasonError(Exception):
+    """Raised when Gemini returns a retryable finish reason instead of images."""
+    pass
+
+
+def raise_or_return_nsfw_for_empty_gemini_response(response, image_response_cls):
+    """
+    Call this when a Gemini response contains no images.
+    - NSFW finish reason  → returns ImageResponse(is_nsfw_detected=True)
+    - Retryable / unknown → raises GeminiRetryableFinishReasonError to trigger retry
+    """
+    finish_reason = None
+    if response.candidates:
+        fr = response.candidates[0].finish_reason
+        finish_reason = fr.name if fr is not None else None
+
+    if finish_reason in GEMINI_NSFW_FINISH_REASONS:
+        logger.warning(f"Gemini response blocked with NSFW finish reason: {finish_reason}")
+        return image_response_cls(
+            error=response.to_json_dict(),
+            is_nsfw_detected=True,
+            model_usage=response.usage_metadata,
+        )
+
+    logger.warning(f"Gemini response returned no images with retryable finish reason: {finish_reason}, retrying...")
+    raise GeminiRetryableFinishReasonError(
+        f"Gemini returned no images with finish_reason={finish_reason}"
+    )
+
+
 def _is_gemini_retryable(exc: BaseException) -> bool:
     """
     Returns True for errors that should be retried against the Gemini API.
@@ -58,6 +113,8 @@ def _is_gemini_retryable(exc: BaseException) -> bool:
     - SDK AttributeError bug: 503 responses with a string 'error' value cause
       AttributeError: 'str' object has no attribute 'get' in _api_client.py
     """
+    if isinstance(exc, GeminiRetryableFinishReasonError):
+        return True
     try:
         if isinstance(
             exc, (ServiceUnavailable, InternalServerError,
