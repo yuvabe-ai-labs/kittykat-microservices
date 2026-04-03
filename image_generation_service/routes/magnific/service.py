@@ -34,7 +34,7 @@ class ImageUpscaleService:
             "Content-Type": "application/json"
         }
 
-        async with httpx.AsyncClient(timeout=60) as client:
+        async with httpx.AsyncClient(timeout=600) as client:
             resp = await client.post(MAGNIFIC_API_URL, json=payload, headers=headers)
 
         if resp.status_code != 200:
