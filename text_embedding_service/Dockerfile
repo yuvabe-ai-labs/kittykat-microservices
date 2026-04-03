@@ -24,5 +24,5 @@ COPY . .
 # Expose the application port
 EXPOSE 8000
 
-# Run the FastAPI app using Uvicorn with workers
-CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "main:app", "-w", "2", "-b", "0.0.0.0:8000"]
+# Run with Uvicorn multi-worker mode
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

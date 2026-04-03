@@ -1,5 +1,5 @@
-# Use a slim Python 3.11 base image with Uvicorn and Gunicorn
 FROM tiangolo/uvicorn-gunicorn:python3.11-slim
+
 
 # Set the working directory to /app
 WORKDIR /app
@@ -27,5 +27,5 @@ ENV MODEL_PATH="/app/services/onnx_clip/data/clip_image_model_vitb32.onnx"
 # Expose port 8000 to access the FastAPI app
 EXPOSE 8000
 
-# Run the FastAPI app using Uvicorn with workers
-CMD ["uvicorn", "main:app", "--workers", "2", "--host", "0.0.0.0", "--port", "8000"]
+# Run with Uvicorn multi-worker mode
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]
