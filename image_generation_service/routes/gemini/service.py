@@ -18,7 +18,7 @@ from google.genai.types import (
 )
 from services.gcp import upload_base64_to_gcp
 
-from utils.helpers import safe_log_dict, gemini_retry
+from utils.helpers import safe_log_dict, gemini_retry, raise_or_return_nsfw_for_empty_gemini_response
 
 
 from .constants import VIRTUAL_TRY_ON_BASE_PROMPT
@@ -112,12 +112,7 @@ class GeminiService:
             logger.info(f"Asset base64s length: {len(asset_base64s)}")
 
             if not asset_base64s:
-                # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
-                return ImageResponse(
-                    error=response.to_json_dict(),
-                    is_nsfw_detected=True,
-                    model_usage=response.usage_metadata,
-                )
+                return raise_or_return_nsfw_for_empty_gemini_response(response, ImageResponse)
 
             logger.info(f"Edited image successfully with model {request.model}")
 
@@ -164,15 +159,7 @@ class GeminiService:
                         asset_base64s.append(b64_string)
 
             if not asset_base64s:
-                logger.warning(
-                    f"VTON response returned no images, possible NSFW content. HTTP response: {response.sdk_http_response}"
-                )
-                # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
-                return ImageResponse(
-                    error=response.to_json_dict(),
-                    is_nsfw_detected=True,
-                    model_usage=response.usage_metadata,
-                )
+                return raise_or_return_nsfw_for_empty_gemini_response(response, ImageResponse)
 
             logger.info(
                 f"Virtual try-on image generated successfully with model {request.model}"
@@ -239,15 +226,7 @@ class GeminiService:
                         asset_base64s.append(b64_string)
 
             if not asset_base64s:
-                logger.warning(
-                    f"Multimodal response returned no images, possible NSFW content. HTTP response: {response.sdk_http_response}"
-                )
-                # Since there is no official documentation on how NSFW content is handled, we assume that an empty response indicates NSFW content.
-                return ImageResponse(
-                    error=response.to_json_dict(),
-                    is_nsfw_detected=True,
-                    model_usage=response.usage_metadata,
-                )
+                return raise_or_return_nsfw_for_empty_gemini_response(response, ImageResponse)
 
             logger.info(
                 f"Image generated successfully via multimodal with model {request.model}, images: {len(asset_base64s)}"
