@@ -1,4 +1,4 @@
-import time
+import asyncio
 import uuid
 from config.env import env
 from utils.logger import logger
@@ -20,12 +20,12 @@ class GeminiVideoGenerationService:
         try:
 
             if request.image:
-                image = GeminiServiceUtils.convert_url_to_image_bytes(
+                image = await GeminiServiceUtils.convert_url_to_image_bytes(
                     str(request.image))
             else:
                 image = None
 
-            operation = self.gemini_client.models.generate_videos(
+            operation = await self.gemini_client.aio.models.generate_videos(
                 model=request.model,
                 config=GenerateVideosConfig(
                     negative_prompt=getattr(request, "negative_prompt", None),
@@ -45,8 +45,8 @@ class GeminiVideoGenerationService:
             # Poll the operation status until the video is ready.
             while not operation.done:
                 logger.info("Waiting for video generation to complete...")
-                time.sleep(10)
-                operation = self.gemini_client.operations.get(operation)
+                await asyncio.sleep(10)
+                operation = await self.gemini_client.aio.operations.get(operation)
 
             if operation.error or operation.response.rai_media_filtered_reasons:
                 return VideoResponse(
@@ -73,13 +73,13 @@ class GeminiVideoGenerationService:
     async def generate_video_veo3_1_suite_models(self, request: GeminiVideoGenerationRequest) -> VideoResponse:
         try:
             first_frame = {
-                "image_bytes": GeminiServiceUtils.convert_url_to_image_bytes(
+                "image_bytes": await GeminiServiceUtils.convert_url_to_image_bytes(
                     str(request.first_frame)),
                 "mime_type": "image/png",
             } if request.first_frame else None
 
             last_frame = {
-                "image_bytes": GeminiServiceUtils.convert_url_to_image_bytes(
+                "image_bytes": await GeminiServiceUtils.convert_url_to_image_bytes(
                     str(request.last_frame)),
                 "mime_type": "image/png",
             } if request.last_frame else None
@@ -92,7 +92,7 @@ class GeminiVideoGenerationService:
             reference_images = [
                 VideoGenerationReferenceImage(
                     image=Image(
-                        image_bytes=GeminiServiceUtils.convert_url_to_image_bytes(
+                        image_bytes=await GeminiServiceUtils.convert_url_to_image_bytes(
                             str(url)
                         ),
                         mime_type="image/png",
@@ -102,7 +102,7 @@ class GeminiVideoGenerationService:
                 for url in request.reference_images
             ] if request.reference_images else None
 
-            operation = self.gemini_client.models.generate_videos(
+            operation = await self.gemini_client.aio.models.generate_videos(
                 model=request.model,
                 config=GenerateVideosConfig(
                     last_frame=last_frame,
@@ -120,8 +120,8 @@ class GeminiVideoGenerationService:
             # Poll the operation status until the video is ready.
             while not operation.done:
                 logger.info("Waiting for video generation to complete...")
-                time.sleep(10)
-                operation = self.gemini_client.operations.get(operation)
+                await asyncio.sleep(10)
+                operation = await self.gemini_client.aio.operations.get(operation)
 
             if operation.error or operation.response.rai_media_filtered_reasons:
                 return VideoResponse(
