@@ -3,10 +3,10 @@ from typing import Any, Dict, Optional, Tuple
 
 from pydantic import BaseModel
 from config.env import env
-import requests
+import httpx
 
 
-def make_request(
+async def make_request(
     method: str,
     url: str,
     payload: Optional[Dict[str, Any] | str] = None,
@@ -37,41 +37,42 @@ def make_request(
         request_headers.update(custom_headers)
 
     try:
-        if is_search:
-            # Special handling for search requests which use a QUERY method
-            # We'll simulate this with a POST request with text/plain content type
-            request_headers["Content-Type"] = "text/plain"
-            response = requests.post(
-                url, data=payload, headers=request_headers)
-        elif method.upper() == "GET":
-            response = requests.get(
-                url, headers=request_headers, params=params)
-        elif method.upper() == "POST":
-            if isinstance(payload, str):
-                response = requests.post(
+        async with httpx.AsyncClient() as client:
+            if is_search:
+                # Special handling for search requests which use a QUERY method
+                # We'll simulate this with a POST request with text/plain content type
+                request_headers["Content-Type"] = "text/plain"
+                response = await client.post(
                     url, data=payload, headers=request_headers)
-            else:
-                response = requests.post(
+            elif method.upper() == "GET":
+                response = await client.get(
+                    url, headers=request_headers, params=params)
+            elif method.upper() == "POST":
+                if isinstance(payload, str):
+                    response = await client.post(
+                        url, data=payload, headers=request_headers)
+                else:
+                    response = await client.post(
+                        url, json=payload, headers=request_headers)
+            elif method.upper() == "PATCH":
+                response = await client.patch(
                     url, json=payload, headers=request_headers)
-        elif method.upper() == "PATCH":
-            response = requests.patch(
-                url, json=payload, headers=request_headers)
-        elif method.upper() == "DELETE":
-            response = requests.delete(url, headers=request_headers)
-        else:
-            return 400, {"error": f"Unsupported method: {method}"}
+            elif method.upper() == "DELETE":
+                response = await client.delete(url, headers=request_headers)
+            else:
+                return 400, {"error": f"Unsupported method: {method}"}
 
-        # Handle successful DELETE requests which return no content
-        if response.status_code == 204:
-            return 204, {"message": "Operation completed successfully"}
+            # Handle successful DELETE requests which return no content
+            if response.status_code == 204:
+                return 204, {"message": "Operation completed successfully"}
 
-        # Try to parse JSON response if available
-        try:
-            response_data = response.json() if response.text.strip() else {}
-        except requests.exceptions.JSONDecodeError:
-            response_data = {"message": response.text}
+            # Try to parse JSON response if available
+            try:
+                response_data = response.json() if response.text.strip() else {}
+            except Exception:
+                response_data = {"message": response.text}
 
-        return response.status_code, response_data
+            return response.status_code, response_data
 
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         return 500, {"error": f"API request failed: {str(e)}"}
