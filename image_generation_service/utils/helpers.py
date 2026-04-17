@@ -139,7 +139,7 @@ def _is_gemini_retryable(exc: BaseException) -> bool:
     return False
 
 
-_GEMINI_MAX_ATTEMPTS = 6
+_GEMINI_MAX_ATTEMPTS = 7
 
 
 def _log_gemini_before_sleep(retry_state: RetryCallState) -> None:
@@ -160,7 +160,7 @@ def _log_gemini_after(retry_state: RetryCallState) -> None:
 
 
 # Reusable decorator for all Gemini API calls.
-# 6 attempts with exponential backoff: 1s → 2s → 4s → 8s → 16s → 16s (~31s total)
+# 7 attempts with exponential backoff: 1s → 2s → 4s → 8s → 16s → 16s → 16s (~47s total)
 gemini_retry = retry(
     retry=retry_if_exception(_is_gemini_retryable),
     wait=wait_exponential(multiplier=1, min=1, max=16),
@@ -171,7 +171,7 @@ gemini_retry = retry(
 )
 
 
-_BYTEPLUS_MAX_ATTEMPTS = 6
+_BYTEPLUS_MAX_ATTEMPTS = 7
 
 
 def _is_byteplus_retryable(exc: BaseException) -> bool:
@@ -224,7 +224,7 @@ def _log_byteplus_after(retry_state: RetryCallState) -> None:
 
 
 # Reusable decorator for all BytePlus API calls.
-# 6 attempts with exponential backoff: 1s → 2s → 4s → 8s → 16s → 16s (~31s total)
+# 7 attempts with exponential backoff: 1s → 2s → 4s → 8s → 16s → 16s → 16s (~47s total)
 byteplus_retry = retry(
     retry=retry_if_exception(_is_byteplus_retryable),
     wait=wait_exponential(multiplier=1, min=1, max=16),
@@ -235,7 +235,7 @@ byteplus_retry = retry(
 )
 
 
-_OPENAI_MAX_ATTEMPTS = 6
+_OPENAI_MAX_ATTEMPTS = 7
 
 
 def _is_openai_retryable(exc: BaseException) -> bool:
@@ -284,7 +284,7 @@ def _log_openai_after(retry_state: RetryCallState) -> None:
 
 
 # Reusable decorator for all OpenAI API calls.
-# 6 attempts with exponential backoff: 1s → 2s → 4s → 8s → 16s → 16s (~31s total)
+# 7 attempts with exponential backoff: 1s → 2s → 4s → 8s → 16s → 16s → 16s (~47s total)
 openai_retry = retry(
     retry=retry_if_exception(_is_openai_retryable),
     wait=wait_exponential(multiplier=1, min=1, max=16),

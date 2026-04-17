@@ -34,7 +34,7 @@ async def create_prediction(
 
         payload = request.dict(exclude_none=True)
 
-        status_code, response_data = make_request(
+        status_code, response_data = await make_request(
             "POST", url, payload, custom_headers)
 
         # Handle the original response if no polling was needed or if polling didn't complete

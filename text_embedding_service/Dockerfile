@@ -21,6 +21,7 @@ ENV MODEL_PATH="/app/services/onnx_clip/data/clip_text_model_vitb32.onnx"
 
 # Copy the rest of the application code
 COPY . .
+
 # Expose the application port
 EXPOSE 8000
 

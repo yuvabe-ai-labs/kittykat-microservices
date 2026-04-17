@@ -1,6 +1,6 @@
 from typing import Iterable
 
-from byteplussdkarkruntime import Ark
+from byteplussdkarkruntime import AsyncArk
 from byteplussdkarkruntime._exceptions import ArkBadRequestError
 from byteplussdkarkruntime.types.content_generation.create_task_content_param import \
     CreateTaskContentParam
@@ -14,7 +14,7 @@ from core.models import VideoResponse
 
 class BytePlusVideoGenerationService:
     def __init__(self):
-        self.byteplus_client = Ark(
+        self.byteplus_client = AsyncArk(
             api_key=env.BYTEPLUS_API_KEY,
         )
 
@@ -72,14 +72,14 @@ class BytePlusVideoGenerationService:
             if request.model in ["seedance-1-5-pro-251215"]:
                 extra_kwargs["generate_audio"] = request.generate_audio
 
-            response = self.byteplus_client.content_generation.tasks.create(
+            response = await self.byteplus_client.content_generation.tasks.create(
                 callback_url=str(request.webhook_url),
                 model=model,
                 content=content,
                 extra_body=extra_kwargs
             )
 
-            res = self.byteplus_client.content_generation.tasks.get(
+            res = await self.byteplus_client.content_generation.tasks.get(
                 task_id=response.id)
             logger.info(f"BytePlus response: {res.usage}")
             return VideoResponse(
