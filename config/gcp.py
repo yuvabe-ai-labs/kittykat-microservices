@@ -5,6 +5,10 @@ import os
 
 load_dotenv()
 
+client = None
+bucket = None
+bucket_prefix = None
+
 try:
     client = storage.Client()
     print("Connected to Google Cloud Storage.")
