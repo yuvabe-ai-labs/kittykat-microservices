@@ -18,6 +18,7 @@ RUN mkdir -p /app/services/onnx_clip/data && \
 
 # Set environment variables (optional)
 ENV MODEL_PATH="/app/services/onnx_clip/data/clip_text_model_vitb32.onnx"
+ENV PORT=7860
 
 # Copy the rest of the application code
 COPY . .
