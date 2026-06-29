@@ -25,7 +25,7 @@ COPY . .
 ENV MODEL_PATH="/app/services/onnx_clip/data/clip_image_model_vitb32.onnx"
 
 # Expose port 8000 to access the FastAPI app
-EXPOSE 8000
+EXPOSE 7860
 
 # Run the FastAPI app using Uvicorn
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "7860"]
