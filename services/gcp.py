@@ -19,7 +19,7 @@ stage_type = os.getenv("STAGE_TYPE")
 _BUCKET_MAP = {
     "prod": "kittykat-agents",
     "stg": "kittykat-agents-stg",
-    "dev": "kittykat-agents-dev",
+    "dev": "kittykat-agent-assets",
     "beta": "kittykat-agents-beta",
 }
 
@@ -123,7 +123,7 @@ def upload_base64_to_gcp(base64_string: str) -> str:
         except Exception:
             pass
 
-        gemini_bucket_name = _BUCKET_MAP.get(stage_type, "kittykat-agents-dev")
+        gemini_bucket_name = _BUCKET_MAP.get(stage_type, "kittykat-agent-assets")
         gemini_bucket = client.bucket(gemini_bucket_name)
 
         blob = gemini_bucket.blob(blob_name)
