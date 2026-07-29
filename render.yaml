@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: text-embedding-service
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /docs
+    envVars:
+      - key: PORT
+        value: 7860
