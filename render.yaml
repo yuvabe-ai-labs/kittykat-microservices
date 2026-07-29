@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: image-generation-service
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /docs
+    envVars:
+      - key: PORT
+        value: 7860
+      - key: STAGE_TYPE
+        value: dev
+
+      # --- secrets (set values in Render dashboard) ---
+      - key: REPLICATE_API_KEY
+        sync: false
+      - key: FALAI_API_KEY
+        sync: false
+      - key: FASHN_API_KEY
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: BYTEPLUS_API_KEY
+        sync: false
+      - key: FREEPIK_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: BUCKET_SA_KEY
+        sync: false
