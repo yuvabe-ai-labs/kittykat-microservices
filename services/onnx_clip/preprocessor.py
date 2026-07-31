@@ -1,6 +1,5 @@
 from typing import Union
 
-import cv2 as cv
 import numpy as np
 from PIL import Image
 
@@ -49,24 +48,15 @@ class Preprocessor:
         # PIL resizing behaves slightly differently than OpenCV because of
         # antialiasing. See also
         # https://pytorch.org/vision/main/generated/torchvision.transforms.functional.resize.html
-        # CLIP uses PIL, so we do too to match its results. But if you don't
-        # want to have PIL as a dependency, feel free to change the code to
-        # use the other branch.
-        use_pil_for_resizing = True
-
-        if use_pil_for_resizing:
-            # https://github.com/pytorch/vision/blob/7cf0f4cc1801ff1892007c7a11f7c35d8dfb7fd0/torchvision/transforms/functional_pil.py#L240
-            # We're working with float images but PIL uses uint8, so convert
-            # there and back again afterwards
-            img_pil = Image.fromarray((img * 255).astype(np.uint8))
-            img_pil = img_pil.resize(
-                (resized_w, resized_h), resample=Image.BICUBIC
-            )
-            img = np.array(img_pil).astype(np.float32) / 255
-        else:
-            img = cv.resize(
-                img, (resized_w, resized_h), interpolation=cv.INTER_CUBIC
-            )
+        # CLIP uses PIL, so we do too to match its results.
+        # https://github.com/pytorch/vision/blob/7cf0f4cc1801ff1892007c7a11f7c35d8dfb7fd0/torchvision/transforms/functional_pil.py#L240
+        # We're working with float images but PIL uses uint8, so convert
+        # there and back again afterwards
+        img_pil = Image.fromarray((img * 255).astype(np.uint8))
+        img_pil = img_pil.resize(
+            (resized_w, resized_h), resample=Image.BICUBIC
+        )
+        img = np.array(img_pil).astype(np.float32) / 255
 
         # Now crop to a square
         y_from = (resized_h - target_size) // 2

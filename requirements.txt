@@ -4,6 +4,5 @@ pillow
 onnxruntime
 regex
 ftfy
-opencv-python-headless
 requests
 aiohttp

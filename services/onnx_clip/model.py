@@ -168,12 +168,26 @@ class OnnxClip:
         return model_loaded
 
     @staticmethod
+    def _session_options() -> ort.SessionOptions:
+        # Trade throughput for a smaller memory footprint: a single thread
+        # and no arena/pattern caching, since this runs on a memory-capped
+        # instance rather than a beefy multi-core box.
+        options = ort.SessionOptions()
+        options.intra_op_num_threads = 1
+        options.inter_op_num_threads = 1
+        options.enable_cpu_mem_arena = False
+        options.enable_mem_pattern = False
+        return options
+
+    @staticmethod
     def _load_model(path: str, silent: bool):
         try:
             if os.path.exists(path):
                 # `providers` need to be set explicitly since ORT 1.9
                 return ort.InferenceSession(
-                    path, providers=ort.get_available_providers()
+                    path,
+                    sess_options=OnnxClip._session_options(),
+                    providers=ort.get_available_providers(),
                 )
             else:
                 raise FileNotFoundError(
@@ -207,7 +221,11 @@ class OnnxClip:
             temporary_filename.rename(path)
 
             # `providers` need to be set explicitly since ORT 1.9
-            return ort.InferenceSession(path, providers=ort.get_available_providers())
+            return ort.InferenceSession(
+                path,
+                sess_options=OnnxClip._session_options(),
+                providers=ort.get_available_providers(),
+            )
 
     def get_image_embeddings(
         self,
