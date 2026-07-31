@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y wget && apt-get clean
 # Download the ONNX model file and save it in the desired path
 RUN mkdir -p /app/services/onnx_clip/data && \
     wget -O /app/services/onnx_clip/data/clip_image_model_vitb32.onnx \
-    "https://storage.cloud.google.com/embedding_model_1/clip_image_model_vitb32.onnx"
+    "https://storage.googleapis.com/embedding_model_1/clip_image_model_vitb32.onnx"
 
 # Copy the FastAPI app code into the container
 COPY . .
